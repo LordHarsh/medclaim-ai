@@ -122,15 +122,8 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
     ]
   );
 
-  // 5. Send to SQS for processing
-  const messageId = await sendClaimForProcessing(claimId);
-
-  if (messageId) {
-    await query("UPDATE claims SET sqs_message_id = $1 WHERE claim_id = $2", [
-      messageId,
-      claimId,
-    ]);
-  }
+  // 5. Send to SQS for processing (Lambda claims the message_id via idempotency check)
+  await sendClaimForProcessing(claimId);
 
   return { claim_id: claimId, case_id: caseId };
 }

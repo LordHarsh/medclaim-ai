@@ -122,16 +122,8 @@ export async function submitClaim(
       ]
     );
 
-    // Send to SQS for processing
-    const messageId = await sendClaimForProcessing(claimId);
-
-    // Update claim with SQS message ID
-    if (messageId) {
-      await sql(
-        "UPDATE claims SET sqs_message_id = $1 WHERE claim_id = $2",
-        [messageId, claimId]
-      );
-    }
+    // Send to SQS for processing (Lambda will set sqs_message_id via idempotency check)
+    await sendClaimForProcessing(claimId);
 
     return { success: true, data: { claim_id: claimId } };
   } catch (error) {
