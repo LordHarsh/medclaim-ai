@@ -22,8 +22,8 @@ from models.schemas import (
 )
 from prompts.classification import (
     CLASSIFICATION_SYSTEM_PROMPT,
-    CONDITION_CLASSIFICATION_PROMPT,
-    EXCLUSION_CLASSIFICATION_PROMPT,
+    build_condition_classification_prompt,
+    build_exclusion_classification_prompt,
 )
 from state import ClaimState
 
@@ -54,13 +54,16 @@ def _is_network_hospital(hospital_name: Optional[str], network_hospitals: list[s
     return False
 
 
-def _classify_condition(diagnosis: list[str], treatment: Optional[str] = None) -> Optional[ConditionClassification]:
+def _classify_condition(
+    diagnosis: list[str], treatment: Optional[str] = None, policy: Optional[dict] = None
+) -> Optional[ConditionClassification]:
     """Use LLM to classify diagnosis against waiting period conditions."""
     if not diagnosis:
         return ConditionClassification(matches_condition=False, matched_condition=None, confidence=0.95)
 
     diagnosis_str = ", ".join(diagnosis) if isinstance(diagnosis, list) else str(diagnosis)
     treatment_str = treatment or ""
+    policy = policy or {}
 
     try:
         llm = get_llm("text_classification")
@@ -68,9 +71,7 @@ def _classify_condition(diagnosis: list[str], treatment: Optional[str] = None) -
 
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        prompt = CONDITION_CLASSIFICATION_PROMPT.format(
-            diagnosis=diagnosis_str, treatment=treatment_str
-        )
+        prompt = build_condition_classification_prompt(diagnosis_str, treatment_str, policy)
         result = structured_llm.invoke([
             SystemMessage(content=CLASSIFICATION_SYSTEM_PROMPT),
             HumanMessage(content=prompt),
@@ -83,7 +84,7 @@ def _classify_condition(diagnosis: list[str], treatment: Optional[str] = None) -
 
 
 def _classify_exclusion(
-    diagnosis: list[str], treatment: Optional[str], category: str
+    diagnosis: list[str], treatment: Optional[str], category: str, policy: Optional[dict] = None
 ) -> Optional[ExclusionMatch]:
     """Use LLM to check if diagnosis/treatment is excluded."""
     if not diagnosis and not treatment:
@@ -91,6 +92,7 @@ def _classify_exclusion(
 
     diagnosis_str = ", ".join(diagnosis) if isinstance(diagnosis, list) else str(diagnosis)
     treatment_str = treatment or ""
+    policy = policy or {}
 
     try:
         llm = get_llm("text_classification")
@@ -98,9 +100,7 @@ def _classify_exclusion(
 
         from langchain_core.messages import HumanMessage, SystemMessage
 
-        prompt = EXCLUSION_CLASSIFICATION_PROMPT.format(
-            diagnosis=diagnosis_str, treatment=treatment_str, category=category
-        )
+        prompt = build_exclusion_classification_prompt(diagnosis_str, treatment_str, category, policy)
         result = structured_llm.invoke([
             SystemMessage(content=CLASSIFICATION_SYSTEM_PROMPT),
             HumanMessage(content=prompt),
@@ -290,7 +290,7 @@ def run_policy_engine(state: ClaimState) -> dict:
     treatment_desc = prescription_data.get("treatment") if prescription_data else None
 
     if diagnosis or treatment_desc:
-        condition_result = _classify_condition(diagnosis, treatment_desc)
+        condition_result = _classify_condition(diagnosis, treatment_desc, policy)
 
         if condition_result and condition_result.matches_condition:
             matched_cond = condition_result.matched_condition
@@ -337,7 +337,7 @@ def run_policy_engine(state: ClaimState) -> dict:
 
     # --- RULE 6: Exclusion Check ---
     if diagnosis or treatment_desc:
-        exclusion_result = _classify_exclusion(diagnosis, treatment_desc, category)
+        exclusion_result = _classify_exclusion(diagnosis, treatment_desc, category, policy)
 
         if exclusion_result and exclusion_result.is_excluded:
             rule_evaluations.append(RuleEvaluation(

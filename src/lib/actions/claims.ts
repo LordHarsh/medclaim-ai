@@ -46,6 +46,9 @@ export async function submitClaim(
     document_keys: JSON.parse(
       (formData.get("document_keys") as string) || "[]"
     ),
+    document_types: JSON.parse(
+      (formData.get("document_types") as string) || "{}"
+    ),
   };
 
   // Validate
@@ -80,7 +83,8 @@ export async function submitClaim(
 
     const claimId = claimRows[0].claim_id as string;
 
-    // Insert documents
+    // Insert documents with detected_type from user selection
+    const docTypesMap = (input.document_types || {}) as Record<string, string>;
     for (const docKey of input.document_keys) {
       const parts = docKey.split("/");
       const filename = parts[parts.length - 1];
@@ -94,10 +98,13 @@ export async function submitClaim(
               ? "image/webp"
               : "image/jpeg";
 
+      // Look up the document type from the mapping (s3_key -> docType)
+      const detectedType = docTypesMap[docKey] || null;
+
       await sql(
-        `INSERT INTO claim_documents (claim_id, s3_key, original_name, content_type, size_bytes)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [claimId, docKey, filename, contentType, 0]
+        `INSERT INTO claim_documents (claim_id, s3_key, original_name, content_type, size_bytes, detected_type)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [claimId, docKey, filename, contentType, 0, detectedType]
       );
     }
 
@@ -150,7 +157,7 @@ export async function listClaims(): Promise<ActionResult<{ claims: ClaimRow[]; t
   )) as unknown as MemberRow[];
 
   if (!members || members.length === 0) {
-    redirect("/onboarding");
+    return { success: true, data: { claims: [], total: 0 } };
   }
 
   const member = members[0];

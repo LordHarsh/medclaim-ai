@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "description": "Image generation prompts for test case documents. Each prompt describes the visual appearance of a mock Indian medical document as it would look in a photograph or scan.",
+  "test_cases": [
+    {
+      "case_id": "TC001",
+      "case_name": "Wrong Document Uploaded",
+      "documents": [
+        {
+          "file_id": "F001",
+          "file_name": "dr_sharma_prescription.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "A valid prescription from Dr. Arun Sharma for Rajesh Kumar. This is the first document uploaded — it is correct for a consultation claim.",
+          "prompt": "A high-quality photograph of an Indian medical prescription printed on white A5 paper, slightly off-center on a wooden desk surface. The document has a pre-printed clinic header at the top in dark blue ink reading 'Dr. Arun Sharma, MBBS, MD (Internal Medicine)' in bold, followed by 'Reg. No: KA/45678/2015' in smaller text. Below that: 'City Medical Centre, 12 MG Road, Koramangala, Bengaluru - 560034' and 'Ph: +91-80-41234567'. A thin horizontal line separates the header from the body. The body is partially handwritten in blue ballpoint pen on pre-printed lines. Patient section shows: 'Patient: Rajesh Kumar' (handwritten), 'Age: 39 yrs', 'Gender: M', 'Date: 01/11/2024'. Below a 'Chief Complaint' field: 'Fever x 3 days, body ache, headache' in cursive handwriting. 'Diagnosis: Viral Fever' is written and underlined. Under the large printed 'Rx' symbol: '1. Tab Paracetamol 650mg — 1-1-1 x 5 days' and '2. Tab Vitamin C 500mg — 0-0-1 x 7 days' in doctor's handwriting. At the bottom: 'Investigations: CBC, Dengue NS1' and 'Follow-up: After 5 days'. The bottom-right corner has a blue ink signature scrawl and a rectangular rubber stamp in violet ink reading 'Dr. Arun Sharma | KA/45678/2015 | City Medical Centre'. The paper has a slight curl at the bottom edge and natural shadow from overhead lighting."
+        },
+        {
+          "file_id": "F002",
+          "file_name": "another_prescription.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "A second prescription from a different doctor — this is the WRONG document. The member should have uploaded a hospital bill instead. The system must detect that both uploaded documents are prescriptions and no hospital bill is present.",
+          "prompt": "A photograph of another Indian medical prescription, this time on a smaller prescription pad with a light green tinted background. The pad has a pre-printed header showing 'Dr. Meena Iyer, MBBS, DNB (General Medicine)' in green text, with 'Reg. No: KA/52341/2018' below it. The clinic address reads 'Greenview Family Clinic, 45 Indiranagar 100ft Road, Bengaluru - 560038' and 'Ph: +91-80-25671234'. The body is entirely handwritten in black ink: 'Patient: Rajesh Kumar', 'Age: 39/M', 'Date: 01-Nov-2024'. Diagnosis written as 'Viral Fever with myalgia'. Under the 'Rx:' heading: '1. Tab Dolo 650 — TDS x 5 days', '2. Tab Cetirizine 10mg — OD x 3 days', '3. Syp Ascoril-D — 10ml TDS x 5 days'. At the bottom is a note: 'Rest advised. Plenty fluids.' The doctor's signature is in black ink with a round rubber stamp partially overlapping it in purple ink reading 'Dr. Meena Iyer | Greenview Family Clinic'. The photo is taken at a slight angle, with the prescription pad sitting on a clipboard. The edges of the pad are slightly dog-eared."
+        }
+      ]
+    },
+    {
+      "case_id": "TC002",
+      "case_name": "Unreadable Document",
+      "documents": [
+        {
+          "file_id": "F003",
+          "file_name": "prescription.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "A clear, readable prescription for Sneha Reddy from a pharmacy claim. This document is GOOD quality and should be parseable by the system.",
+          "prompt": "A clear, well-lit photograph of an Indian medical prescription on white paper. The pre-printed header reads 'Dr. Kavitha Rao, MBBS, MD (General Medicine)' in dark navy blue, followed by 'Reg. No: KA/61234/2017'. Below: 'HealthPoint Clinic, 8 Residency Road, Bengaluru - 560025' and 'Ph: +91-80-22345678'. The patient details are neatly handwritten in blue ink: 'Patient: Sneha Reddy', 'Age: 28 yrs', 'Gender: F', 'Date: 25/10/2024'. Chief Complaint: 'Sore throat, mild fever x 2 days'. Diagnosis: 'Upper Respiratory Infection'. Under Rx: '1. Tab Azithromycin 500mg — OD x 3 days', '2. Tab Paracetamol 500mg — SOS (if fever > 100F)', '3. Betadine Gargle — TDS x 5 days'. At the bottom: 'Adv: Warm fluids, rest'. Signature in bottom right with a clean rectangular stamp: 'Dr. Kavitha Rao | KA/61234/2017 | HealthPoint Clinic'. The document is photographed straight-on with good lighting, minimal shadows, text is crisp and fully legible. Paper is flat with no wrinkles."
+        },
+        {
+          "file_id": "F004",
+          "file_name": "blurry_bill.jpg",
+          "document_type": "PHARMACY_BILL",
+          "description": "An UNREADABLE pharmacy bill — extremely blurry, out of focus, with motion blur. The system must detect that this document cannot be read and ask the member to re-upload it.",
+          "prompt": "A very poorly taken mobile phone photograph of a small pharmacy receipt, completely ruined by extreme camera motion blur and defocus. The entire image is a smeared mess of grey and white streaks on a dark background. The camera was moving rapidly during capture, creating long horizontal motion trails from what was once text. You can tell there is a piece of white paper (narrow receipt format) in the frame but every single character and number has been smeared into unrecognizable horizontal lines. The lighting is extremely poor - dim yellowish incandescent bulb causing underexposure. The paper is also at a severe angle making it additionally warped. Absolutely zero words, numbers, or characters can be identified. It is impossible to determine what pharmacy this is from, who the patient is, what medicines are listed, or what the total amount is. The photograph is completely useless as a document - it needs to be retaken."
+        }
+      ]
+    },
+    {
+      "case_id": "TC003",
+      "case_name": "Documents Belong to Different Patients",
+      "documents": [
+        {
+          "file_id": "F005",
+          "file_name": "prescription_rajesh.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "A prescription with patient name 'Rajesh Kumar'. This is submitted by member EMP001 (Rajesh Kumar) — so this document matches the member.",
+          "prompt": "A clear photograph of an Indian medical prescription on white paper with a pre-printed letterhead. The header shows 'Dr. Arun Sharma, MBBS, MD (Internal Medicine)' in bold dark blue, 'Reg. No: KA/45678/2015' below it, then 'City Medical Centre, 12 MG Road, Bengaluru - 560034' and 'Ph: +91-80-41234567'. A horizontal rule separates the header. Patient details are handwritten in blue ballpoint: 'Patient: Rajesh Kumar' (clearly legible, written in neat handwriting), 'Age: 39 yrs', 'Sex: Male', 'Date: 01-11-2024'. Chief Complaint: 'Fever, bodyache, weakness x 3 days'. Diagnosis: 'Viral Fever' (written clearly and underlined). Under the printed Rx symbol: '1. Tab Paracetamol 650mg — 1-1-1 x 5 days', '2. Tab Vitamin C 500mg — 0-0-1 x 7 days'. Investigations: 'CBC, Dengue NS1'. Follow-up note: 'Review after 5 days'. Bottom right has the doctor's flowing signature and a rectangular purple rubber stamp reading 'Dr. Arun Sharma | Reg: KA/45678/2015'. The photograph is well-lit with the document placed flat. The patient name 'Rajesh Kumar' is prominently visible and clearly readable."
+        },
+        {
+          "file_id": "F006",
+          "file_name": "bill_arjun.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "A hospital bill with patient name 'Arjun Mehta' — this is a DIFFERENT person from the member (Rajesh Kumar). This mismatch must be detected by the system.",
+          "prompt": "A photograph of a printed Indian hospital bill on white A4 paper. The bill has a professional header with 'CITY MEDICAL CENTRE' in large bold capitals, followed by '12 MG Road, Koramangala, Bengaluru - 560034' in smaller text. Below: 'GSTIN: 29AABCC1234M1ZF' and 'Ph: 080-41234567'. A thick horizontal line separates the header from the bill body. The title 'BILL / RECEIPT' is centered in bold. Bill details: 'Bill No: CMC/2024/08456' and 'Date: 01-Nov-2024' on the same line. Below the bill info, patient details are clearly printed: 'Patient Name: Arjun Mehta' (this name is prominently visible and clearly different from 'Rajesh Kumar'), 'Age/Gender: 35 / Male', 'Referring Doctor: Dr. Arun Sharma'. A bordered table follows with columns DESCRIPTION, QTY, RATE, AMOUNT. Line items: 'Consultation Fee (OPD) | 1 | 1,000.00 | 1,000.00', 'CBC (Complete Blood Count) | 1 | 300.00 | 300.00', 'Dengue NS1 Antigen Test | 1 | 200.00 | 200.00'. Below the table: 'Subtotal: Rs. 1,500.00', 'GST (0% on healthcare): 0.00', 'Total Amount: Rs. 1,500.00' in bold. Payment section: 'Payment Mode: UPI'. At the bottom: 'Received by: Accounts Dept' with a small round stamp in purple ink reading 'City Medical Centre — Paid'. The document is a clean thermal/laser printout photographed straight-on with even lighting."
+        }
+      ]
+    },
+    {
+      "case_id": "TC004",
+      "case_name": "Clean Consultation — Full Approval",
+      "documents": [
+        {
+          "file_id": "F007",
+          "file_name": "prescription_tc004.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "A valid, clean prescription from Dr. Arun Sharma for Rajesh Kumar with diagnosis of Viral Fever. This is part of a clean consultation claim that should be fully approved.",
+          "prompt": "A high-quality, well-lit photograph of an Indian medical prescription on a pre-printed prescription pad. The header is printed in dark blue ink: 'Dr. Arun Sharma, MBBS, MD (Internal Medicine)' in bold serif font, followed by 'Reg. No: KA/45678/2015' and 'City Clinic, Bengaluru, 12 MG Road, Koramangala, Bengaluru - 560034'. Phone number: '+91-80-41234567'. A clean horizontal rule below the header. The body section has pre-printed labels with handwritten entries in neat blue ballpoint pen: 'Patient: Rajesh Kumar', 'Age: 39 years', 'Gender: Male', 'Date: 2024-11-01 (01/11/2024)'. Below, 'Chief Complaint: Fever since 3 days with bodyache and headache'. 'Diagnosis: Viral Fever' is written in slightly larger handwriting and underlined. Under the large 'Rx' symbol printed on the left margin: '1. Tab Paracetamol 650mg — 1-1-1 x 5 days (after food)', '2. Tab Vitamin C 500mg — 0-0-1 x 7 days'. Below: 'Investigations advised: CBC, Dengue NS1 Antigen'. 'Follow-up: After 5 days if no improvement'. At the bottom right, a confident signature in blue ink with a rectangular rubber stamp in violet/purple ink that reads 'Dr. Arun Sharma | MBBS, MD | KA/45678/2015 | City Clinic, Bengaluru'. The paper is clean, white, slightly glossy, photographed flat on a surface with natural daylight coming from the left. No wrinkles or stains."
+        },
+        {
+          "file_id": "F008",
+          "file_name": "hospital_bill_tc004.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "A valid hospital bill from City Clinic Bengaluru for Rajesh Kumar, totalling Rs. 1500. Items: Consultation Fee Rs. 1000, CBC Test Rs. 300, Dengue NS1 Test Rs. 200.",
+          "prompt": "A clear photograph of a printed Indian hospital bill on white A4 paper. The header features 'CITY CLINIC, BENGALURU' in large bold black capital letters with a small medical cross logo to the left. Below: '12 MG Road, Koramangala, Bengaluru - 560034' in regular text. 'GSTIN: 29AABCC1234M1ZF | Ph: 080-41234567' on the next line. A double horizontal line separates the header. Centered bold title: 'TAX INVOICE / BILL'. Details row: 'Bill No: CMC/2024/08321' on the left, 'Date: 01/11/2024 (01-Nov-2024)' on the right. Patient details block: 'Patient Name: Rajesh Kumar', 'Age/Gender: 39 / Male', 'Referring Doctor: Dr. Arun Sharma'. A neatly formatted table with thin black borders contains columns: 'S.No.', 'DESCRIPTION', 'QTY', 'RATE (Rs.)', 'AMOUNT (Rs.)'. Row 1: '1 | Consultation Fee | 1 | 1,000.00 | Rs. 1000'. Row 2: '2 | CBC Test | 1 | 300.00 | Rs. 300'. Row 3: '3 | Dengue NS1 Test | 1 | 200.00 | Rs. 200'. The table footer shows: 'Subtotal: Rs. 1,500.00', 'GST (Exempt - Healthcare): Rs. 0.00', 'TOTAL AMOUNT: Rs. 1500' in bold. A line for 'Amount in words: Rupees One Thousand Five Hundred Only'. Payment section: 'Payment Mode: Cash'. At the bottom: 'Authorized Signatory' with a signature and a round 'PAID' stamp in red ink dated '01 NOV 2024'. The bill is a clean laser printout with professional formatting, photographed under good lighting with no blur or skew."
+        }
+      ]
+    },
+    {
+      "case_id": "TC005",
+      "case_name": "Waiting Period — Diabetes",
+      "documents": [
+        {
+          "file_id": "F009",
+          "file_name": "prescription_tc005.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription for Vikram Joshi diagnosed with Type 2 Diabetes Mellitus by Dr. Sunil Mehta. The diagnosis of diabetes triggers the waiting period check.",
+          "prompt": "A photograph of an Indian medical prescription on a cream-colored pre-printed prescription pad. The header is printed in dark green ink: 'Dr. Sunil Mehta, MBBS, MD (Endocrinology)' in bold, followed by 'Reg. No: GJ/56789/2014'. Clinic details: 'Mehta Diabetes & Thyroid Clinic, 23 CG Road, Navrangpura, Ahmedabad - 380009' and 'Ph: +91-79-26543210'. Below a green decorative line separator, the patient details are handwritten in blue ink: 'Patient: Vikram Joshi', 'Age: 42 yrs', 'Gender: M', 'Date: 15/10/2024'. 'Chief Complaint: Increased thirst, frequent urination, fatigue x 2 months'. Under Diagnosis (underlined and written clearly): 'Type 2 Diabetes Mellitus (T2DM) — Newly diagnosed'. 'HbA1c: 8.2%' noted. Under the Rx symbol: '1. Tab Metformin 500mg — 1-0-1 x 30 days (with meals)', '2. Tab Glimepiride 1mg — 1-0-0 x 30 days (before breakfast)'. Additional notes: 'Advice: Diet control, regular exercise, monitor fasting sugar', 'Review: After 1 month with FBS/PPBS'. At the bottom right: doctor's signature in blue ink and a rectangular rubber stamp in purple: 'Dr. Sunil Mehta | MD (Endocrinology) | GJ/56789/2014'. The photo is taken in good lighting, document is slightly tilted (about 2 degrees clockwise), paper shows a faint coffee ring stain in the top-left corner but all text remains clearly legible."
+        },
+        {
+          "file_id": "F010",
+          "file_name": "hospital_bill_tc005.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill for Vikram Joshi dated 2024-10-15, total Rs. 3000. This bill is from the diabetes consultation visit.",
+          "prompt": "A photograph of a printed hospital bill on white paper. The header shows 'MEHTA DIABETES & THYROID CLINIC' in bold dark green capitals, with the address '23 CG Road, Navrangpura, Ahmedabad - 380009' below. 'GSTIN: 24AABCM5678N1ZK | Ph: 079-26543210'. A horizontal line separates the header. Title: 'RECEIPT / BILL' centered. 'Bill No: MDTC/2024/03456' on the left, 'Date: 15/10/2024 (15-Oct-2024)' on the right. Patient block: 'Patient Name: Vikram Joshi', 'Age/Gender: 42 / Male', 'Doctor: Dr. Sunil Mehta'. A table with columns S.No, Description, Amount (Rs.): '1 | Consultation Fee (Specialist) | 1,500.00', '2 | HbA1c Test | 800.00', '3 | Fasting Blood Sugar Test | 200.00', '4 | Post-Prandial Blood Sugar | 200.00', '5 | Urine Routine | 300.00'. Below the table: 'Total Amount: Rs. 3000 (₹3,000)' in bold. 'Amount in Words: Rupees Three Thousand Only'. 'Payment: UPI (PhonePe)'. Footer has a signature line with 'For Mehta Diabetes & Thyroid Clinic' printed below and a rectangular purple stamp: 'PAID | 15-OCT-2024'. The bill is cleanly printed on standard white paper, photographed with even lighting. A slight paper fold crease is visible horizontally across the middle but does not obscure any text."
+        }
+      ]
+    },
+    {
+      "case_id": "TC006",
+      "case_name": "Dental Partial Approval — Cosmetic Exclusion",
+      "documents": [
+        {
+          "file_id": "F011",
+          "file_name": "dental_bill_tc006.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill from Smile Dental Clinic for Priya Singh. Contains Root Canal Treatment (Rs. 8000, covered) and Teeth Whitening (Rs. 4000, cosmetic/excluded). The system must partially approve only the root canal.",
+          "prompt": "A photograph of a printed dental clinic bill on white paper. The document is clean and professional. Header shows SMILE DENTAL CLINIC with a tooth logo, followed by the address 15 FC Road Deccan Gymkhana Pune 411004. The bill shows Patient Name: Priya Singh, Date: 15-Oct-2024. There are exactly two line items in a simple table: Item 1 is Root Canal Treatment with amount Rs. 8,000 and Item 2 is Teeth Whitening with amount Rs. 4,000. The total at the bottom clearly shows Total Amount: Rs. 12,000. Payment method is Credit Card. There is a signature and stamp at the bottom. The bill is simple with no tax or additional charges. The total is exactly twelve thousand rupees (12000). All text is clearly printed and legible."
+        }
+      ]
+    },
+    {
+      "case_id": "TC007",
+      "case_name": "MRI Without Pre-Authorization",
+      "documents": [
+        {
+          "file_id": "F012",
+          "file_name": "prescription_tc007.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription from Dr. Venkat Rao ordering an MRI Lumbar Spine for suspected lumbar disc herniation. This establishes medical necessity for the MRI.",
+          "prompt": "A photograph of an Indian medical prescription on white paper with a pre-printed letterhead. Header in dark maroon ink: 'Dr. Venkat Rao, MBBS, MS (Orthopaedics), DNB' in bold, followed by 'Reg. No: AP/67890/2017'. Clinic: 'Spine & Joint Care Centre, 34 Jubilee Hills Road No. 5, Hyderabad - 500033' and 'Ph: +91-40-23456789'. Below a thin maroon line, the body has neat handwriting in blue ink. Patient details: 'Patient: Suresh Patil', 'Age: 48 yrs', 'Gender: M', 'Date: 02/11/2024'. Chief Complaint: 'Low back pain radiating to left leg x 3 weeks, numbness in left foot'. Clinical Examination notes: 'SLR positive at 30 degrees (Left), Reduced ankle reflex (L)'. Diagnosis (underlined): 'Suspected Lumbar Disc Herniation (L4-L5 / L5-S1)'. Under the Rx section: '1. Tab Pregabalin 75mg — 0-0-1 x 14 days', '2. Tab Etoricoxib 90mg — 0-1-0 x 7 days'. A separate boxed section labeled 'Investigations Ordered:' contains 'MRI Lumbar Spine (Plain + Contrast)' written in capitals and circled for emphasis. At the bottom: 'Review with MRI report in 1 week'. Doctor's signature and a rectangular stamp: 'Dr. Venkat Rao | MS Ortho, DNB | AP/67890/2017 | Spine & Joint Care Centre'. The prescription is photographed clearly with sharp focus and good contrast."
+        },
+        {
+          "file_id": "F013",
+          "file_name": "mri_report_tc007.jpg",
+          "document_type": "LAB_REPORT",
+          "description": "MRI Lumbar Spine lab/diagnostic report confirming the test was performed. This corroborates that the MRI was actually done.",
+          "prompt": "A photograph of a printed MRI diagnostic report on white A4 paper with a professional medical lab format. The header shows 'PRECISION DIAGNOSTICS & IMAGING PVT LTD' in bold black capitals, with 'NABH Accredited | NABL Certified' and a certification logo mark on the right. Address: '12 Banjara Hills, Road No. 3, Hyderabad - 500034'. 'Ph: 040-29876543 | Email: reports@precisiondiag.in'. A horizontal line separates the header. Patient information block: 'Patient Name: Suresh Patil', 'Age/Sex: 48 Years / Male', 'Ref. Doctor: Dr. Venkat Rao', 'Sample Date: 02-Nov-2024', 'Report Date: 02-Nov-2024', 'Report ID: PD-MRI-2024-4567'. Bold centered title: 'MRI LUMBAR SPINE (PLAIN + CONTRAST)'. Under 'TECHNIQUE:' paragraph: 'Multiplanar, multisequence MRI of the lumbar spine was performed on a 1.5T Siemens scanner with T1W, T2W, STIR sequences in sagittal, axial, and coronal planes. Post-contrast T1W fat-sat images obtained after IV Gadolinium administration.' Under 'FINDINGS:' several lines of medical text describing disc heights, signal intensities, and a note about 'L4-L5: Posterior disc bulge with left paracentral protrusion causing mild thecal sac indentation and left L5 nerve root compression.' Under 'IMPRESSION:' in bold: '1. L4-L5 disc herniation with left L5 radiculopathy. 2. Early degenerative changes L3-L4.' At the bottom: 'Reported by: Dr. Anand Krishnamurthy, MD (Radiodiagnosis)', 'Reg. No: AP/45231/2014'. Signature and a round stamp: 'Precision Diagnostics | Hyderabad'. The report appears as a clean laser printout with structured formatting, photographed straight-on under fluorescent lighting."
+        },
+        {
+          "file_id": "F014",
+          "file_name": "hospital_bill_tc007.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill for the MRI Lumbar Spine costing Rs. 15,000. This amount exceeds Rs. 10,000 and requires pre-authorization which was not obtained.",
+          "prompt": "A photograph of a printed hospital/diagnostic centre bill on white paper. The header reads 'PRECISION DIAGNOSTICS & IMAGING PVT LTD' in bold black, with 'NABH Accredited' beneath. Address: '12 Banjara Hills, Road No. 3, Hyderabad - 500034'. 'GSTIN: 36AABCP7890L1ZM | Ph: 040-29876543'. A line separates the header. Title: 'TAX INVOICE' in bold. 'Invoice No: PDI/2024/INV-8934' and 'Date: 02-Nov-2024'. Patient details: 'Patient: Suresh Patil', 'Age/Gender: 48 / Male', 'Referred by: Dr. Venkat Rao'. Table with columns S.No, Description, Qty, Rate, Amount: '1 | MRI Lumbar Spine — Rs. 15000 (Plain + Contrast including Gadolinium) | 1 | 15,000.00 | 15,000.00'. 'Subtotal: Rs. 15000', 'GST (Exempt — Healthcare Diagnostic): Rs. 0.00', 'Total Amount: ₹15,000 (Rs. 15000)' in bold. 'Amount in words: Rupees Fifteen Thousand Only'. 'Payment Mode: Card (HDFC Debit)'. Footer: 'For Precision Diagnostics & Imaging Pvt Ltd' with a signature and an oval rubber stamp in blue: 'PAID | PDI Hyderabad | 02-NOV-2024'. The bill is professionally printed, photographed flat with good lighting and high clarity. All amounts and line items are clearly visible."
+        }
+      ]
+    },
+    {
+      "case_id": "TC008",
+      "case_name": "Per-Claim Limit Exceeded",
+      "documents": [
+        {
+          "file_id": "F015",
+          "file_name": "prescription_tc008.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription from Dr. R. Gupta for Amit Verma diagnosed with Gastroenteritis. Medicines prescribed: Antibiotics, Probiotics, ORS.",
+          "prompt": "A photograph of an Indian medical prescription on a pre-printed prescription form with a white background and thin blue border. The header is printed in black: 'Dr. Rajesh Gupta, MBBS, MD (Medicine)' in bold, 'Reg. No: DL/34567/2016' below. Clinic: 'Gupta Medical & Gastro Clinic, B-12 Lajpat Nagar Market, New Delhi - 110024' and 'Ph: +91-11-29876543'. A thin blue line separates header from body. The patient section is filled in with blue ballpoint handwriting: 'Patient: Amit Verma', 'Age: 45 yrs', 'Sex: M', 'Date: 20/10/2024'. 'C/C: Loose motions x 2 days, abdominal cramps, nausea, mild fever'. Diagnosis (underlined): 'Acute Gastroenteritis'. Under Rx: '1. Antibiotics — Tab Ofloxacin 200mg + Ornidazole 500mg (O2) — 1-0-1 x 5 days', '2. Probiotics — Cap VSL#3 — 1-1-1 x 7 days', '3. ORS — Sachet Electral — 1 sachet in 1L water, sip throughout day x 3 days', '4. Tab Ondansetron 4mg — SOS for vomiting', '5. Tab Rabeprazole 20mg — 1-0-0 x 5 days (before breakfast)'. Advice: 'Bland diet, avoid spicy/oily food, plenty of fluids. Stool R/M if no improvement in 48 hrs.' Signature at bottom right with a rectangular stamp: 'Dr. R. Gupta | DL/34567/2016 | Lajpat Nagar, Delhi'. The prescription is clearly photographed on a desk, a pen visible at the edge of the frame. Text is fully legible."
+        },
+        {
+          "file_id": "F016",
+          "file_name": "hospital_bill_tc008.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill for Amit Verma totalling Rs. 7,500 which exceeds the per-claim limit of Rs. 5,000. Items: Consultation Fee Rs. 2,000 and Medicines Rs. 5,500.",
+          "prompt": "A photograph of a printed clinic bill on white paper. The header reads 'GUPTA MEDICAL & GASTRO CLINIC' in bold black capitals, with 'B-12, Lajpat Nagar Market, New Delhi - 110024' below. 'GSTIN: 07AABCG3456K1ZN | Ph: 011-29876543'. A separator line, then centered title: 'BILL CUM RECEIPT'. 'Bill No: GMGC/2024/5678' and 'Date: 20-Oct-2024'. Patient details: 'Patient Name: Amit Verma', 'Age/Gender: 45 / Male', 'Doctor: Dr. R. Gupta'. A bordered table with columns: S.No., Particulars, Amount (Rs.). Row 1: '1 | Consultation Fee — Rs. 2000 (Specialist Visit) | 2,000.00'. Row 2: '2 | Medicines — Rs. 5500 (Antibiotics, Probiotics, ORS, Anti-emetic, Antacid — 5 day course) | 5,500.00'. Below the table: 'Gross Total: Rs. 7500 (₹7,500)', 'Discount: Nil', 'Net Payable: Rs. 7500' in bold underlined. 'Amount in Words: Rupees Seven Thousand Five Hundred Only'. 'Payment Mode: Cash'. At the bottom, a signature with 'Authorized Signatory' printed below, and a round purple stamp: 'Gupta Medical & Gastro Clinic | PAID'. The document is a clean printout, photographed in good conditions. All text and amounts are sharp and clearly legible. The total of Rs. 7,500 is prominently displayed."
+        }
+      ]
+    },
+    {
+      "case_id": "TC009",
+      "case_name": "Fraud Signal — Multiple Same-Day Claims",
+      "documents": [
+        {
+          "file_id": "F017",
+          "file_name": "prescription_tc009.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription for Ravi Menon from Dr. S. Khan with diagnosis of Migraine. This is the 4th claim from this member on the same day, which should trigger fraud signals.",
+          "prompt": "A photograph of an Indian medical prescription on a pre-printed pad with an off-white background. The header is printed in dark blue: 'Dr. Sameer Khan, MBBS, DM (Neurology)' in bold, 'Reg. No: MH/89012/2015'. Clinic: 'NeuroLife Clinic, 201 Linking Road, Bandra West, Mumbai - 400050' and 'Ph: +91-22-26543210'. A thin line separates the header. Patient details in blue pen handwriting: 'Patient: Ravi Menon', 'Age: 38 yrs', 'Sex: M', 'Date: 30/10/2024'. Chief Complaint: 'Severe throbbing headache R side x 2 days, photophobia, nausea'. Diagnosis: 'Migraine without aura' (underlined). Under Rx: '1. Tab Sumatriptan 50mg — SOS at onset of headache (max 2/day)', '2. Tab Propranolol 40mg — 1-0-1 x 30 days (prophylaxis)', '3. Tab Domperidone 10mg — SOS for nausea'. Advice: 'Maintain headache diary. Avoid triggers (bright lights, stress, irregular sleep). Review in 2 weeks.' Signature and rectangular purple stamp: 'Dr. S. Khan | DM Neurology | MH/89012/2015'. The prescription is photographed straight-on, clear and legible. The date '30/10/2024' is clearly visible — this is the same date as the member's 3 other claims."
+        },
+        {
+          "file_id": "F018",
+          "file_name": "hospital_bill_tc009.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill for Ravi Menon totalling Rs. 4,800 from NeuroLife Clinic. This is the 4th bill from different providers on the same date (30-Oct-2024), which is a fraud signal.",
+          "prompt": "A photograph of a printed clinic bill on white paper. Header: 'NEUROLIFE CLINIC' in bold navy capitals, followed by 'Comprehensive Neurology & Headache Centre'. Address: '201, Linking Road, Bandra West, Mumbai - 400050'. 'GSTIN: 27AABCN6789Q1ZR | Ph: 022-26543210'. A horizontal line, then 'RECEIPT' centered in bold. 'Receipt No: NLC/2024/0934' and 'Date: 30-Oct-2024'. Patient details: 'Patient Name: Ravi Menon', 'Age/Gender: 38 / Male', 'Consulting Doctor: Dr. S. Khan'. Table with S.No, Description, Amount: '1 | Neurology Consultation (Specialist) | 2,000.00', '2 | EEG (Electroencephalogram) | 1,500.00', '3 | Medicines (Sumatriptan, Propranolol, Domperidone) | 1,300.00'. 'Total: Rs. 4800 (₹4,800)' in bold. 'Amount in Words: Rupees Four Thousand Eight Hundred Only'. 'Payment: Google Pay (UPI)'. Footer signature with oval stamp: 'NeuroLife Clinic | Mumbai | PAID'. The bill is cleanly printed and photographed with good quality. The date 30-Oct-2024 is clearly visible. This is a professionally formatted receipt with no signs of tampering."
+        }
+      ]
+    },
+    {
+      "case_id": "TC010",
+      "case_name": "Network Hospital — Discount Applied",
+      "documents": [
+        {
+          "file_id": "F019",
+          "file_name": "prescription_tc010.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription from Dr. S. Iyer at Apollo Hospitals for Deepak Shah diagnosed with Acute Bronchitis. Medicines: Amoxicillin and Salbutamol Inhaler.",
+          "prompt": "A clear photograph of a printed medical prescription from Apollo Hospitals, Chennai. The header has the Apollo Hospitals logo (blue) with text: APOLLO HOSPITALS, Department of Pulmonary Medicine. Doctor details clearly printed: Dr. S. Iyer, MBBS, MD (Pulmonology), FCCP. Registration No: TN/56789/2013 (clearly printed, not handwritten). Address: Apollo Hospitals, 21 Greams Lane, Off Greams Road, Chennai - 600006. Ph: +91-44-28293333. Below a line, patient details clearly printed: Patient Name: Deepak Shah (printed clearly in bold). Age: 44 years, Gender: Male. Date: 03/11/2024. Chief Complaint: Cough with expectoration x 10 days, mild fever, wheezing. Diagnosis: Acute Bronchitis (printed clearly and underlined). Under Rx section (printed): 1. Cap Amoxicillin 500mg — 1-1-1 x 7 days (after food). 2. Salbutamol Inhaler (100mcg/puff) — 2 puffs TDS x 7 days via spacer. 3. Syp Ambrodil-S — 10ml TDS x 5 days. 4. Tab Montelukast 10mg — 0-0-1 x 14 days. Advice: Steam inhalation TDS, Avoid cold drinks. Follow-up: 1 week. At bottom right: Dr. S. Iyer signature with printed name below and Apollo Hospitals stamp. All text on this prescription is PRINTED (not handwritten), making patient name Deepak Shah and registration TN/56789/2013 clearly legible."
+        },
+        {
+          "file_id": "F020",
+          "file_name": "hospital_bill_tc010.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Hospital bill from Apollo Hospitals (a network hospital) for Deepak Shah. Consultation Fee Rs. 1,500 + Medicines Rs. 3,000 = Total Rs. 4,500. Network discount of 20% should be applied.",
+          "prompt": "A clear photograph of a printed hospital bill from Apollo Hospitals on white A4 paper. Header: APOLLO HOSPITALS ENTERPRISE LTD in bold dark blue with the Apollo logo. Address: Greams Lane, Off Greams Road, Chennai - 600008. CIN and GSTIN numbers in small text. Phone: 044-28293333. Below a line, centered: OUTPATIENT BILL / TAX INVOICE. Bill details: Bill No: APL/CHN/OP/78456, Date: 03-Nov-2024. Patient section: Patient Name: Deepak Shah (clearly printed in bold). Age/Gender: 44 / Male. Department: Pulmonary Medicine. Consulting Doctor: Dr. S. Iyer. A clean printed table with columns: S.No, Description, Qty, Rate (Rs.), Amount (Rs.). Row 1: 1, Consultation Fee (Pulmonology, Senior Consultant), 1, 1500, 1500. Row 2: 2, Medicines (Amoxicillin 500mg, Salbutamol Inhaler, Ambrodil-S, Montelukast 10mg), 1, 3000, 3000. Below the table: Subtotal: Rs. 4,500. GST (Exempt — Medical Services): Rs. 0.00. TOTAL AMOUNT: Rs. 4,500 (in bold, large font). Amount in words: Rupees Four Thousand Five Hundred Only. Payment Mode: UPI. At bottom: Cashier signature, Apollo Hospitals round stamp, and a red PAID stamp with date 03-NOV-2024. All text is clearly printed, patient name Deepak Shah is prominently visible, and total Rs. 4,500 is unmistakable."
+        }
+      ]
+    },
+    {
+      "case_id": "TC011",
+      "case_name": "Component Failure — Graceful Degradation",
+      "documents": [
+        {
+          "file_id": "F021",
+          "file_name": "prescription_tc011.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Ayurvedic prescription from Vaidya T. Krishnan for Kavita Nair. Diagnosis: Chronic Joint Pain, Treatment: Panchakarma Therapy. Uses AYUR registration format.",
+          "prompt": "A photograph of an Indian Ayurvedic medical prescription on a distinctive prescription form with a light saffron/orange tinted border design featuring small Om symbols and leaf motifs. The header reads 'Vaidya Thilakan Krishnan, BAMS, MD (Ayurveda — Panchakarma)' in dark brown ink, followed by 'Reg. No: AYUR/KL/2345/2019' (Central Council of Indian Medicine). Clinic: 'Kerala Ayurveda Chikitsa Kendram (Ayur Wellness Centre), Opposite Govt. Hospital, MG Road, Ernakulam, Kochi - 682011' and 'Ph: +91-484-2345678'. Below a decorative Ayurvedic-themed divider line with a small lotus symbol. Patient details in neat blue ink: 'Patient: Kavita Nair', 'Age: 55 yrs', 'Gender: Female', 'Date: 28/10/2024'. 'Prakriti: Vata-Kapha'. Chief Complaint: 'Chronic joint pain (both knees and lower back) x 6 months, morning stiffness'. Ayurvedic Diagnosis: 'Sandhivata (Chronic Joint Pain / Osteoarthritis)'. Under Treatment Plan: 'Panchakarma Therapy — 5 sessions (Janu Basti + Kati Basti + Abhyanga + Swedana)'. Internal Medicines: '1. Maharasnadi Kashayam — 15ml BD before food', '2. Yogaraja Guggulu — 2 tabs BD after food', '3. Dhanwantharam Tailam — for external application'. Duration: '5 days of therapy + 30 days internal medicines'. Review: 'After completion of Panchakarma sessions'. Signature in bottom right with a distinctive round stamp in green ink: 'Vaidya T. Krishnan | AYUR/KL/2345/2019 | Ayur Wellness Centre, Kochi'. The document has a unique traditional feel with the saffron border, clearly different from modern allopathic prescriptions. Photographed with warm lighting, all text clearly legible."
+        },
+        {
+          "file_id": "F022",
+          "file_name": "hospital_bill_tc011.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Bill from Ayur Wellness Centre for Kavita Nair. Items: Panchakarma Therapy 5 sessions Rs. 3,000 + Consultation Rs. 1,000 = Total Rs. 4,000.",
+          "prompt": "A photograph of a bill from an Ayurvedic wellness centre, printed on cream/off-white paper with a subtle green leaf watermark. The header features a lotus/Ayurveda-themed logo on the left and 'AYUR WELLNESS CENTRE' in dark green bold capitals, with 'Kerala Ayurveda Chikitsa Kendram' in smaller green text below. 'Authentic Panchakarma & Traditional Treatments'. Address: 'Opp. Govt. Hospital, MG Road, Ernakulam, Kochi - 682011'. 'GSTIN: 32AABCA8901R1ZS | Ph: 0484-2345678'. A green decorative line separates the header. Title: 'TREATMENT BILL' centered in bold. 'Bill No: AWC/2024/PK-0567' and 'Date: 28-Oct-2024'. Patient information: 'Patient Name: Kavita Nair', 'Age/Gender: 55 / Female', 'Treating Vaidya: Vaidya T. Krishnan'. Table with columns S.No, Treatment/Service, Sessions, Rate, Amount: '1 | Panchakarma Therapy (5 sessions) — Rs. 3000 (Janu Basti + Kati Basti + Abhyanga + Swedana) | 5 | 600.00 | 3,000.00', '2 | Consultation — Rs. 1000 (Initial Assessment + Prakriti Analysis) | 1 | 1,000.00 | 1,000.00'. Below the table: 'Total Amount: Rs. 4000 (₹4,000)' in bold green. 'Amount in Words: Rupees Four Thousand Only'. 'Mode of Payment: Cash'. 'Note: Internal medicines purchased separately.' Footer: 'For Ayur Wellness Centre' with a signature and a round green stamp: 'Ayur Wellness Centre | Ernakulam | PAID'. The bill has a distinctive Ayurvedic/traditional aesthetic with green color scheme, clearly photographed with all text legible."
+        }
+      ]
+    },
+    {
+      "case_id": "TC012",
+      "case_name": "Excluded Treatment",
+      "documents": [
+        {
+          "file_id": "F023",
+          "file_name": "prescription_tc012.jpg",
+          "document_type": "PRESCRIPTION",
+          "description": "Prescription from Dr. P. Banerjee for Anita Desai. Diagnosis: Morbid Obesity (BMI 37). Treatment: Bariatric Consultation and Customised Diet Plan. Obesity treatment is excluded under the policy.",
+          "prompt": "A photograph of an Indian medical prescription on white paper with a pre-printed header. The header shows 'Dr. Partha Banerjee, MBBS, MS (General Surgery), Fellowship in Bariatric Surgery' in bold black, followed by 'Reg. No: WB/34567/2015'. Clinic: 'Kolkata Weight Management & Bariatric Centre, 78 Park Street, Kolkata - 700016' and 'Ph: +91-33-22345678'. A clean horizontal line separates the header. Patient details in blue ballpoint handwriting: 'Patient: Anita Desai', 'Age: 41 yrs', 'Gender: F', 'Date: 18/10/2024'. Clinical Details: 'Height: 158 cm, Weight: 92 kg, BMI: 36.8 (approx 37)'. Chief Complaint: 'Inability to lose weight despite diet attempts, knee pain due to weight, breathlessness on exertion'. Diagnosis (clearly written and underlined): 'Morbid Obesity — BMI 37'. Under Treatment/Plan (Bariatric Consultation and Customised Diet Plan): '1. Bariatric Consultation — comprehensive evaluation for surgical and non-surgical options', '2. Customised Diet Plan — 1200 kcal structured meal plan with macro tracking', '3. Lifestyle modification counseling'. Additional notes: 'Consider Sleeve Gastrectomy if non-surgical approach fails after 3 months. Blood work: Thyroid profile, Lipid panel, HbA1c.' Follow-up: '2 weeks for diet adherence review'. Signature at bottom right with rectangular stamp: 'Dr. P. Banerjee | MS, FAIS | WB/34567/2015 | Bariatric Centre, Park Street'. The prescription is clearly photographed on a clipboard, well-lit, all text sharp and readable. The diagnosis 'Morbid Obesity — BMI 37' is prominently visible."
+        },
+        {
+          "file_id": "F024",
+          "file_name": "hospital_bill_tc012.jpg",
+          "document_type": "HOSPITAL_BILL",
+          "description": "Bill from the bariatric centre for Anita Desai. Items: Bariatric Consultation Rs. 3,000 + Personalised Diet and Nutrition Program Rs. 5,000 = Total Rs. 8,000. Both items relate to obesity treatment which is excluded.",
+          "prompt": "A photograph of a printed hospital bill on white paper. The header reads 'KOLKATA WEIGHT MANAGEMENT & BARIATRIC CENTRE' in bold black capitals, with 'Comprehensive Obesity Solutions — Surgical & Non-Surgical' in smaller italics below. Address: '78 Park Street, Kolkata - 700016'. 'GSTIN: 19AABCK5678M1ZT | Ph: 033-22345678'. A separator line, then centered bold title: 'CONSULTATION BILL'. 'Invoice No: KWMBC/2024/1234' and 'Date: 18-Oct-2024'. Patient details: 'Patient Name: Anita Desai', 'Age/Gender: 41 / Female', 'Consulting Doctor: Dr. P. Banerjee'. A bordered table with columns S.No, Description, Amount (Rs.): '1 | Bariatric Consultation — Rs. 3000 (Comprehensive evaluation including BMI assessment, surgical candidacy review, metabolic profiling discussion) | 3,000.00', '2 | Personalised Diet and Nutrition Program — Rs. 5000 (Customised 1200 kcal meal plan, macro-nutrient planning, 4-week diet chart, nutrition counseling session) | 5,000.00'. Below the table: 'Subtotal: Rs. 8000 (₹8,000)', 'GST (18%): Rs. 1,440.00', 'Total Amount: Rs. 9,440.00', 'Discount (GST waived — patient request): -Rs. 1,440.00', 'Net Payable: Rs. 8000' in bold. 'Amount in Words: Rupees Eight Thousand Only'. 'Payment: UPI (Paytm)'. Footer: 'For Kolkata Weight Management & Bariatric Centre' with a signature and a rectangular stamp: 'KWMBC | Park Street, Kolkata | PAID | 18-OCT-2024'. The bill is professionally printed and photographed clearly. The line items clearly describe obesity/bariatric-related services."
+        }
+      ]
+    }
+  ]
+}

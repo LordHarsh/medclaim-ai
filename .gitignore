@@ -56,4 +56,7 @@ worker/tests/
 worker/pytest.ini
 vitest.config.ts
 
+# generated test document images (large, regenerate with: npm run generate-docs)
+resources/test_documents/
+
 .vercel

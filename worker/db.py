@@ -25,7 +25,8 @@ def get_connection():
     conn = psycopg2.connect(DATABASE_URL)
     try:
         with conn.cursor() as cur:
-            cur.execute("SET LOCAL app.bypass_rls = 'on'")
+            cur.execute("SET app.bypass_rls = 'on'")
+        conn.commit()
         yield conn
         conn.commit()
     except Exception:

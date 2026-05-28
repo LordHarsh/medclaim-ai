@@ -4,30 +4,95 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { submitClaim } from "@/lib/actions/claims";
-import { CLAIM_CATEGORIES } from "@/lib/validations";
-import { DocumentUpload } from "@/components/document-upload";
+import {
+  CLAIM_CATEGORIES,
+  DOCUMENT_REQUIREMENTS,
+  DOCUMENT_TYPE_LABELS,
+  validateRequiredDocuments,
+  type ClaimCategory,
+  type DocumentType,
+} from "@/lib/validations";
+import { SingleDocUpload } from "@/components/document-upload";
+
+interface UploadedDoc {
+  name: string;
+  size: number;
+  s3Key: string;
+}
 
 export default function NewClaimPage() {
   const router = useRouter();
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<ClaimCategory | "">("");
   const [treatmentDate, setTreatmentDate] = useState("");
   const [claimedAmount, setClaimedAmount] = useState("");
   const [hospitalName, setHospitalName] = useState("");
-  const [documentKeys, setDocumentKeys] = useState<string[]>([]);
+  // Map: docType -> uploaded file info
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, UploadedDoc>>({});
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Generate a temporary claim ID for file uploads
   const [tempClaimId] = useState(() => crypto.randomUUID());
 
-  const handleDocumentsChange = useCallback((keys: string[]) => {
-    setDocumentKeys(keys);
+  const handleUploadComplete = useCallback((docType: string, s3Key: string) => {
+    setUploadedDocs((prev) => {
+      // Extract filename from the s3Key (last segment)
+      const parts = s3Key.split("/");
+      const fullName = parts[parts.length - 1];
+      // Remove the docType prefix we added
+      const name = fullName.startsWith(`${docType}_`)
+        ? fullName.slice(docType.length + 1)
+        : fullName;
+      return {
+        ...prev,
+        [docType]: { name, size: 0, s3Key },
+      };
+    });
   }, []);
+
+  const handleRemoveDoc = useCallback((docType: string) => {
+    setUploadedDocs((prev) => {
+      const updated = { ...prev };
+      delete updated[docType];
+      return updated;
+    });
+  }, []);
+
+  // Get document requirements for the selected category
+  const docRequirements = category ? DOCUMENT_REQUIREMENTS[category] : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrors([]);
+
+    // Validate required documents
+    if (category) {
+      const missingDocs = validateRequiredDocuments(
+        category as ClaimCategory,
+        // Build a mapping of s3Key -> docType for validation
+        Object.fromEntries(
+          Object.entries(uploadedDocs).map(([docType, info]) => [info.s3Key, docType])
+        )
+      );
+      if (missingDocs.length > 0) {
+        setErrors(
+          missingDocs.map((doc) => ({
+            field: "documents",
+            message: `Missing required document: ${doc}`,
+          }))
+        );
+        return;
+      }
+    }
+
     setLoading(true);
+
+    // Build document_keys array and document_types mapping
+    const documentKeys = Object.values(uploadedDocs).map((d) => d.s3Key);
+    const documentTypes: Record<string, string> = {};
+    for (const [docType, info] of Object.entries(uploadedDocs)) {
+      documentTypes[info.s3Key] = docType;
+    }
 
     const formData = new FormData();
     formData.set("category", category);
@@ -35,6 +100,7 @@ export default function NewClaimPage() {
     formData.set("claimed_amount", claimedAmount);
     formData.set("hospital_name", hospitalName);
     formData.set("document_keys", JSON.stringify(documentKeys));
+    formData.set("document_types", JSON.stringify(documentTypes));
 
     try {
       const result = await submitClaim(formData);
@@ -52,6 +118,12 @@ export default function NewClaimPage() {
   }
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Check if all required docs are uploaded
+  const allRequiredUploaded = (() => {
+    if (!category || !docRequirements) return false;
+    return docRequirements.required.every((dt) => uploadedDocs[dt]?.s3Key);
+  })();
 
   return (
     <div className="min-h-screen bg-[var(--canvas-soft)]">
@@ -125,7 +197,11 @@ export default function NewClaimPage() {
                 </label>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    setCategory(e.target.value as ClaimCategory | "");
+                    // Clear uploaded docs when category changes
+                    setUploadedDocs({});
+                  }}
                   className="input-design w-full text-[var(--ink)] bg-[var(--canvas)] appearance-none cursor-pointer"
                   required
                 >
@@ -202,20 +278,94 @@ export default function NewClaimPage() {
             </div>
           </div>
 
-          {/* Document Upload Card */}
+          {/* Document Upload Card — Category-Aware */}
           <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden">
             <div className="px-6 py-5 border-b border-[var(--hairline)]">
               <h2 className="heading-sm text-[var(--ink)]">Supporting Documents</h2>
               <p className="mt-1 body-md text-[var(--ink-mute)]">
-                Upload prescriptions, bills, lab reports, or pharmacy receipts.
-                All documents must clearly show patient name and date.
+                {category
+                  ? "Upload the required documents for your claim category."
+                  : "Select a claim category above to see required documents."}
               </p>
             </div>
             <div className="p-6">
-              <DocumentUpload
-                claimId={tempClaimId}
-                onFilesChange={handleDocumentsChange}
-              />
+              {!category && (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--hairline)] px-6 py-10">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--canvas-soft)]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-6 w-6 text-[var(--ink-mute)]"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                  <p className="mt-3 body-md text-[var(--ink-mute)]">
+                    Please select a claim category first
+                  </p>
+                </div>
+              )}
+
+              {category && docRequirements && (
+                <div className="space-y-6">
+                  {/* Required Documents */}
+                  {docRequirements.required.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="caption text-[var(--ink-secondary)]">
+                          Required Documents
+                        </h3>
+                        <span className="inline-flex items-center rounded-full bg-[var(--primary-bg-subdued)]/30 px-2 py-0.5 micro-cap text-[var(--primary-deep)]">
+                          {docRequirements.required.filter((dt) => uploadedDocs[dt]?.s3Key).length}/{docRequirements.required.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {docRequirements.required.map((docType) => (
+                          <SingleDocUpload
+                            key={docType}
+                            claimId={tempClaimId}
+                            docType={docType}
+                            label={DOCUMENT_TYPE_LABELS[docType as DocumentType]}
+                            required={true}
+                            onUploadComplete={handleUploadComplete}
+                            onRemove={handleRemoveDoc}
+                            currentFile={uploadedDocs[docType] || null}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Documents */}
+                  {docRequirements.optional.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="caption text-[var(--ink-mute)]">
+                        Optional Documents
+                      </h3>
+                      <div className="space-y-2">
+                        {docRequirements.optional.map((docType) => (
+                          <SingleDocUpload
+                            key={docType}
+                            claimId={tempClaimId}
+                            docType={docType}
+                            label={DOCUMENT_TYPE_LABELS[docType as DocumentType]}
+                            required={false}
+                            onUploadComplete={handleUploadComplete}
+                            onRemove={handleRemoveDoc}
+                            currentFile={uploadedDocs[docType] || null}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -229,7 +379,7 @@ export default function NewClaimPage() {
             </Link>
             <button
               type="submit"
-              disabled={loading || documentKeys.length === 0}
+              disabled={loading || !allRequiredUploaded}
               className="btn-pill btn-pill-primary inline-flex items-center px-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Submitting..." : "Submit Claim"}

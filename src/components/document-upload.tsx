@@ -289,3 +289,245 @@ export function DocumentUpload({ claimId, onFilesChange }: DocumentUploadProps) 
     </div>
   );
 }
+
+/* ========================================================================
+   Single Document Slot Upload
+   Used by the category-aware form to provide one upload input per document type.
+   ======================================================================== */
+
+interface SingleDocUploadProps {
+  claimId: string;
+  docType: string;
+  label: string;
+  required: boolean;
+  onUploadComplete: (docType: string, s3Key: string) => void;
+  onRemove: (docType: string) => void;
+  currentFile?: { name: string; size: number; s3Key: string } | null;
+}
+
+export function SingleDocUpload({
+  claimId,
+  docType,
+  label,
+  required,
+  onUploadComplete,
+  onRemove,
+  currentFile,
+}: SingleDocUploadProps) {
+  const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">(
+    currentFile ? "success" : "idle"
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const uploadFile = useCallback(
+    async (file: File) => {
+      const validTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
+      const maxSize = 10 * 1024 * 1024;
+
+      if (!validTypes.includes(file.type)) {
+        setStatus("error");
+        setError("Invalid file type. Only JPEG, PNG, WebP, and PDF allowed.");
+        return;
+      }
+      if (file.size > maxSize) {
+        setStatus("error");
+        setError("File too large. Maximum size is 10MB.");
+        return;
+      }
+
+      setStatus("uploading");
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          claim_id: claimId,
+          filename: `${docType}_${file.name}`,
+          content_type: file.type,
+          size_bytes: file.size.toString(),
+        });
+
+        const response = await fetch(`/api/upload-url?${params}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to get upload URL");
+        }
+
+        const uploadResponse = await fetch(data.presigned_url, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Upload failed");
+        }
+
+        setStatus("success");
+        onUploadComplete(docType, data.s3_key);
+      } catch (err) {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
+    },
+    [claimId, docType, onUploadComplete]
+  );
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      uploadFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleRemove = () => {
+    setStatus("idle");
+    setError(null);
+    onRemove(docType);
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // If a file is uploaded/uploading, show the file info
+  if (status === "success" && currentFile) {
+    return (
+      <div
+        className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-all duration-200 ${
+          required
+            ? "border-l-[3px] border-l-[var(--primary-indigo)] border-t-[var(--hairline)] border-r-[var(--hairline)] border-b-[var(--hairline)]"
+            : "border-[var(--hairline)]"
+        } bg-[var(--canvas)]`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3 w-3 text-emerald-600"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div>
+            <p className="body-md text-[var(--ink)]">{currentFile.name}</p>
+            <p className="micro text-[var(--ink-mute)]">
+              {label} &middot; {formatSize(currentFile.size)}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleRemove}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-mute)] hover:text-[var(--ink)] hover:bg-[var(--canvas-soft)] transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // Upload slot (empty or error state)
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 transition-all duration-200 ${
+        isDragging
+          ? "border-[var(--primary-indigo)] bg-[var(--primary-bg-subdued)]/20"
+          : required
+            ? "border-l-[3px] border-l-[var(--primary-indigo)] border-t-[var(--hairline)] border-r-[var(--hairline)] border-b-[var(--hairline)]"
+            : "border-[var(--hairline)] hover:border-[var(--hairline-input)]"
+      }`}
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--canvas-soft)]">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4.5 w-4.5 text-[var(--ink-mute)]"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="12" y1="18" x2="12" y2="12" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="body-md text-[var(--ink)]">
+          {label}
+          {required && <span className="text-[var(--ruby)] ml-0.5">*</span>}
+          {!required && (
+            <span className="text-[var(--ink-mute)] ml-1.5">(optional)</span>
+          )}
+        </p>
+        {status === "uploading" && (
+          <p className="micro text-[var(--primary-indigo)]">Uploading...</p>
+        )}
+        {status === "error" && error && (
+          <p className="micro text-red-600">{error}</p>
+        )}
+        {status === "idle" && (
+          <p className="micro text-[var(--ink-mute)]">
+            Click or drag a file here
+          </p>
+        )}
+      </div>
+      {status === "uploading" && (
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary-indigo)] border-t-transparent" />
+      )}
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            uploadFile(e.target.files[0]);
+          }
+        }}
+        className="absolute inset-0 cursor-pointer opacity-0"
+      />
+    </div>
+  );
+}

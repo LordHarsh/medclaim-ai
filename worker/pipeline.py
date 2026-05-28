@@ -84,9 +84,31 @@ def _default_result_for_step(step_name: str) -> dict:
 
 
 def _safe_node(func, step_name: str, is_critical: bool):
-    """Wrap a node function with error handling."""
+    """Wrap a node function with error handling and DB status updates."""
+
+    # Map internal step names to DB-friendly step names
+    STEP_DB_NAMES = {
+        "load_context": "LOAD_CONTEXT",
+        "doc_verify": "DOCUMENT_VERIFICATION",
+        "doc_extract": "DOCUMENT_EXTRACTION",
+        "policy_engine": "POLICY_ENGINE",
+        "fraud_detection": "FRAUD_DETECTION",
+        "final_decision": "FINAL_DECISION",
+    }
 
     def wrapper(state: ClaimState) -> dict:
+        from db import update_claim_status
+
+        claim_id = state.get("claim_id")
+        db_step = STEP_DB_NAMES.get(step_name, step_name.upper())
+
+        # Update DB status before running (so SSE can show "in progress")
+        if claim_id:
+            try:
+                update_claim_status(claim_id, "PROCESSING", db_step)
+            except Exception as db_err:
+                logger.warning(f"Failed to update DB before {step_name}: {db_err}")
+
         start_time = time.time()
         try:
             result = func(state)
