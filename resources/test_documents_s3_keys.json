@@ -1,0 +1,146 @@
+{
+  "TC001": [
+    {
+      "file_id": "F001",
+      "file_name": "another_prescription.jpg",
+      "s3_key": "test-cases/TC001/another_prescription.jpg"
+    },
+    {
+      "file_id": "F002",
+      "file_name": "dr_sharma_prescription.jpg",
+      "s3_key": "test-cases/TC001/dr_sharma_prescription.jpg"
+    }
+  ],
+  "TC002": [
+    {
+      "file_id": "F003",
+      "file_name": "blurry_bill.jpg",
+      "s3_key": "test-cases/TC002/blurry_bill.jpg"
+    },
+    {
+      "file_id": "F004",
+      "file_name": "prescription.jpg",
+      "s3_key": "test-cases/TC002/prescription.jpg"
+    }
+  ],
+  "TC003": [
+    {
+      "file_id": "F005",
+      "file_name": "bill_arjun.jpg",
+      "s3_key": "test-cases/TC003/bill_arjun.jpg"
+    },
+    {
+      "file_id": "F006",
+      "file_name": "prescription_rajesh.jpg",
+      "s3_key": "test-cases/TC003/prescription_rajesh.jpg"
+    }
+  ],
+  "TC004": [
+    {
+      "file_id": "F007",
+      "file_name": "hospital_bill_tc004.jpg",
+      "s3_key": "test-cases/TC004/hospital_bill_tc004.jpg"
+    },
+    {
+      "file_id": "F008",
+      "file_name": "prescription_tc004.jpg",
+      "s3_key": "test-cases/TC004/prescription_tc004.jpg"
+    }
+  ],
+  "TC005": [
+    {
+      "file_id": "F009",
+      "file_name": "hospital_bill_tc005.jpg",
+      "s3_key": "test-cases/TC005/hospital_bill_tc005.jpg"
+    },
+    {
+      "file_id": "F010",
+      "file_name": "prescription_tc005.jpg",
+      "s3_key": "test-cases/TC005/prescription_tc005.jpg"
+    }
+  ],
+  "TC006": [
+    {
+      "file_id": "F011",
+      "file_name": "dental_bill_tc006.jpg",
+      "s3_key": "test-cases/TC006/dental_bill_tc006.jpg"
+    }
+  ],
+  "TC007": [
+    {
+      "file_id": "F012",
+      "file_name": "hospital_bill_tc007.jpg",
+      "s3_key": "test-cases/TC007/hospital_bill_tc007.jpg"
+    },
+    {
+      "file_id": "F013",
+      "file_name": "mri_report_tc007.jpg",
+      "s3_key": "test-cases/TC007/mri_report_tc007.jpg"
+    },
+    {
+      "file_id": "F014",
+      "file_name": "prescription_tc007.jpg",
+      "s3_key": "test-cases/TC007/prescription_tc007.jpg"
+    }
+  ],
+  "TC008": [
+    {
+      "file_id": "F015",
+      "file_name": "hospital_bill_tc008.jpg",
+      "s3_key": "test-cases/TC008/hospital_bill_tc008.jpg"
+    },
+    {
+      "file_id": "F016",
+      "file_name": "prescription_tc008.jpg",
+      "s3_key": "test-cases/TC008/prescription_tc008.jpg"
+    }
+  ],
+  "TC009": [
+    {
+      "file_id": "F017",
+      "file_name": "hospital_bill_tc009.jpg",
+      "s3_key": "test-cases/TC009/hospital_bill_tc009.jpg"
+    },
+    {
+      "file_id": "F018",
+      "file_name": "prescription_tc009.jpg",
+      "s3_key": "test-cases/TC009/prescription_tc009.jpg"
+    }
+  ],
+  "TC010": [
+    {
+      "file_id": "F019",
+      "file_name": "hospital_bill_tc010.jpg",
+      "s3_key": "test-cases/TC010/hospital_bill_tc010.jpg"
+    },
+    {
+      "file_id": "F020",
+      "file_name": "prescription_tc010.jpg",
+      "s3_key": "test-cases/TC010/prescription_tc010.jpg"
+    }
+  ],
+  "TC011": [
+    {
+      "file_id": "F021",
+      "file_name": "hospital_bill_tc011.jpg",
+      "s3_key": "test-cases/TC011/hospital_bill_tc011.jpg"
+    },
+    {
+      "file_id": "F022",
+      "file_name": "prescription_tc011.jpg",
+      "s3_key": "test-cases/TC011/prescription_tc011.jpg"
+    }
+  ],
+  "TC012": [
+    {
+      "file_id": "F023",
+      "file_name": "hospital_bill_tc012.jpg",
+      "s3_key": "test-cases/TC012/hospital_bill_tc012.jpg"
+    },
+    {
+      "file_id": "F024",
+      "file_name": "prescription_tc012.jpg",
+      "s3_key": "test-cases/TC012/prescription_tc012.jpg"
+    }
+  ]
+}

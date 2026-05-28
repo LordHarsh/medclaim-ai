@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "generate-docs": "node scripts/generate-test-documents.js"
+    "generate-docs": "node scripts/generate-test-documents.js",
+    "upload-test-docs": "node scripts/upload-test-docs.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",
