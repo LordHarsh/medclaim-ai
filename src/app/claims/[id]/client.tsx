@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClaimProgress } from "@/components/claim-progress";
 import { TraceViewer } from "@/components/trace-viewer";
 
@@ -47,11 +46,11 @@ export function ClaimDetailClient({
     <div className="space-y-6">
       {/* Live Progress */}
       {!isTerminal && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Processing Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--hairline)]">
+            <h3 className="heading-sm text-[var(--ink)]">Processing Progress</h3>
+          </div>
+          <div className="p-5">
             <ClaimProgress
               claimId={claimId}
               initialStatus={initialStatus}
@@ -59,16 +58,16 @@ export function ClaimDetailClient({
               onDecision={handleDecision}
               onError={handleError}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Live Decision received */}
       {decision && (
-        <Card
-          className={`border-2 ${
+        <div
+          className={`rounded-xl border-2 p-6 ${
             decision.decision === "APPROVED"
-              ? "border-green-200 bg-green-50"
+              ? "border-emerald-200 bg-emerald-50"
               : decision.decision === "PARTIAL"
                 ? "border-amber-200 bg-amber-50"
                 : decision.decision === "REJECTED"
@@ -76,12 +75,12 @@ export function ClaimDetailClient({
                   : "border-purple-200 bg-purple-50"
           }`}
         >
-          <CardHeader>
-            <CardTitle>Decision: {decision.decision}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          <h3 className="heading-md text-[var(--ink)] mb-3">
+            Decision: {decision.decision}
+          </h3>
+          <div className="space-y-2">
             {decision.approved_amount && (
-              <p className="text-lg font-bold text-green-700">
+              <p className="display-md text-emerald-700 tabular-nums">
                 Approved:{" "}
                 {new Intl.NumberFormat("en-IN", {
                   style: "currency",
@@ -91,31 +90,27 @@ export function ClaimDetailClient({
               </p>
             )}
             {decision.confidence_score && (
-              <p className="text-sm text-gray-600">
+              <p className="body-md text-[var(--ink-mute)]">
                 Confidence: {(decision.confidence_score * 100).toFixed(0)}%
               </p>
             )}
-            <p className="text-sm text-gray-600">
+            <p className="body-md text-[var(--ink-mute)] mt-2">
               Refresh the page to see the full trace and breakdown.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Live Error received */}
       {error && (
-        <Card className="border-2 border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800">
-              {error.error_code === "NEEDS_REUPLOAD"
-                ? "Action Required"
-                : "Error"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-700">{error.message}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border-2 border-red-200 bg-red-50 p-6">
+          <h3 className="heading-sm text-red-800 mb-2">
+            {error.error_code === "NEEDS_REUPLOAD"
+              ? "Action Required"
+              : "Error"}
+          </h3>
+          <p className="body-md text-red-700">{error.message}</p>
+        </div>
       )}
 
       {/* Trace Viewer (for terminal states with trace data) */}
@@ -123,7 +118,7 @@ export function ClaimDetailClient({
         <div>
           <button
             onClick={() => setShowTrace(!showTrace)}
-            className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+            className="flex items-center gap-2 body-md text-[var(--primary-indigo)] hover:text-[var(--primary-deep)] transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +128,7 @@ export function ClaimDetailClient({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`h-4 w-4 transition-transform ${
+              className={`h-4 w-4 transition-transform duration-200 ${
                 showTrace ? "rotate-90" : ""
               }`}
             >

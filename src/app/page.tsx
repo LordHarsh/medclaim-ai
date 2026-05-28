@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="border-b bg-white">
+    <div className="flex min-h-screen flex-col bg-[var(--canvas)]">
+      {/* Navigation */}
+      <header className="absolute top-0 left-0 right-0 z-10">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary-indigo)]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -17,136 +16,195 @@ export default function HomePage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-5 w-5 text-white"
+                className="h-4.5 w-4.5 text-white"
               >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                 <path d="m9 12 2 2 4-4" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-gray-900">
+            <span className="text-lg font-light tracking-[-0.2px] text-[var(--ink)]">
               MedClaim AI
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/auth/sign-in">
-              <Button variant="ghost">Sign In</Button>
+            <Link
+              href="/auth/sign-in"
+              className="body-md text-[var(--ink-mute)] hover:text-[var(--ink)] transition-colors px-3 py-2"
+            >
+              Sign In
             </Link>
-            <Link href="/auth/sign-up">
-              <Button>Get Started</Button>
+            <Link
+              href="/auth/sign-up"
+              className="btn-pill btn-pill-primary inline-flex items-center"
+            >
+              Get Started
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
+      {/* Hero with Gradient Mesh */}
+      <section className="gradient-mesh relative flex flex-col items-center justify-center px-4 pt-32 pb-24 sm:px-6 lg:px-8 min-h-[70vh]">
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Health Claims,{" "}
-            <span className="text-blue-600">Processed Intelligently</span>
+          <h1 className="display-xxl text-[var(--ink)]">
+            Health claims,{" "}
+            <span className="text-[var(--primary-indigo)]">processed intelligently</span>
           </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-600">
+          <p className="mt-6 body-lg text-[var(--ink-mute)] max-w-2xl mx-auto">
             Submit your health insurance claims and get AI-powered decisions in
             minutes, not weeks. Upload documents, track progress in real-time,
             and receive transparent explanations for every decision.
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
-            <Link href="/auth/sign-up">
-              <Button size="lg" className="px-8">
-                Submit a Claim
-              </Button>
-            </Link>
-            <Link href="/auth/sign-in">
-              <Button variant="outline" size="lg" className="px-8">
-                View My Claims
-              </Button>
+            <Link
+              href="/auth/sign-up"
+              className="btn-pill btn-pill-primary inline-flex items-center px-6 py-3 text-base"
+            >
+              Get Started
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="ml-2 h-4 w-4"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </Link>
           </div>
         </div>
+      </section>
 
-        {/* Features */}
-        <div className="mx-auto mt-20 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-3">
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-blue-600"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">
-              Easy Upload
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Drag and drop your medical documents. We support prescriptions,
-              bills, lab reports, and more.
+      {/* Features on canvas-soft */}
+      <section className="bg-[var(--canvas-soft)] px-4 py-24 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-16">
+            <h2 className="display-lg text-[var(--ink)]">
+              Everything you need for claims processing
+            </h2>
+            <p className="mt-4 body-lg text-[var(--ink-mute)]">
+              Powered by AI, designed for transparency
             </p>
           </div>
 
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-green-600"
-              >
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {/* Document Verification */}
+            <div className="card-feature">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary-bg-subdued)]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 text-[var(--primary-indigo)]"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <path d="m9 15 2 2 4-4" />
+                </svg>
+              </div>
+              <h3 className="mt-5 heading-md text-[var(--ink)]">
+                Document Verification
+              </h3>
+              <p className="mt-3 body-md text-[var(--ink-mute)]">
+                AI-powered verification of prescriptions, bills, lab reports,
+                and medical documents with fraud detection.
+              </p>
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">
-              Real-time Tracking
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Watch your claim progress through each verification step with live
-              updates and status indicators.
-            </p>
-          </div>
 
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-purple-600"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
+            {/* Policy Engine */}
+            <div className="card-feature">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary-bg-subdued)]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 text-[var(--primary-indigo)]"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <h3 className="mt-5 heading-md text-[var(--ink)]">
+                Policy Engine
+              </h3>
+              <p className="mt-3 body-md text-[var(--ink-mute)]">
+                Intelligent evaluation against your policy terms with transparent
+                calculation breakdowns for every decision.
+              </p>
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">
-              Transparent Decisions
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Every decision comes with a detailed explanation, confidence score,
-              and calculation breakdown.
-            </p>
+
+            {/* Real-time Tracking */}
+            <div className="card-feature">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary-bg-subdued)]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 text-[var(--primary-indigo)]"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+              </div>
+              <h3 className="mt-5 heading-md text-[var(--ink)]">
+                Real-time Tracking
+              </h3>
+              <p className="mt-3 body-md text-[var(--ink-mute)]">
+                Watch your claim progress through each verification step with
+                live updates, status indicators, and instant notifications.
+              </p>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Cream band with stats */}
+      <section className="bg-[var(--canvas-cream)] px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 gap-12 sm:grid-cols-3 text-center">
+            <div>
+              <p className="display-lg text-[var(--ink)] tabular-nums">75K+</p>
+              <p className="mt-2 body-md text-[var(--ink-mute)]">
+                Claims processed
+              </p>
+            </div>
+            <div>
+              <p className="display-lg text-[var(--ink)] tabular-nums">10M</p>
+              <p className="mt-2 body-md text-[var(--ink-mute)]">
+                Lives covered target
+              </p>
+            </div>
+            <div>
+              <p className="display-lg text-[var(--ink)] tabular-nums">&lt;3 min</p>
+              <p className="mt-2 body-md text-[var(--ink-mute)]">
+                Average decision time
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-6">
-        <div className="mx-auto max-w-7xl px-4 text-center text-sm text-gray-500 sm:px-6 lg:px-8">
-          MedClaim AI - AI-powered health insurance claims processing
+      <footer className="bg-[var(--canvas)] border-t border-[var(--hairline)] px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl text-center">
+          <p className="caption text-[var(--ink-mute)]">
+            MedClaim AI — AI-powered health insurance claims processing
+          </p>
         </div>
       </footer>
     </div>

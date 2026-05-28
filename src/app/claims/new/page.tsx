@@ -6,17 +6,6 @@ import Link from "next/link";
 import { submitClaim } from "@/lib/actions/claims";
 import { CLAIM_CATEGORIES } from "@/lib/validations";
 import { DocumentUpload } from "@/components/document-upload";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function NewClaimPage() {
   const router = useRouter();
@@ -65,13 +54,13 @@ export default function NewClaimPage() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--canvas-soft)]">
       {/* Header */}
-      <header className="border-b bg-white shadow-sm">
+      <header className="bg-[var(--canvas)] border-b border-[var(--hairline)]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+          <div className="flex items-center gap-2.5">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary-indigo)]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -80,17 +69,22 @@ export default function NewClaimPage() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-5 w-5 text-white"
+                  className="h-4.5 w-4.5 text-white"
                 >
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                   <path d="m9 12 2 2 4-4" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-900">MedClaim AI</span>
+              <span className="text-lg font-light tracking-[-0.2px] text-[var(--ink)]">
+                MedClaim AI
+              </span>
             </Link>
           </div>
-          <Link href="/dashboard">
-            <Button variant="outline">Back to Dashboard</Button>
+          <Link
+            href="/dashboard"
+            className="btn-pill btn-pill-secondary inline-flex items-center text-sm"
+          >
+            Back to Dashboard
           </Link>
         </div>
       </header>
@@ -98,8 +92,8 @@ export default function NewClaimPage() {
       {/* Content */}
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Submit New Claim</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="display-md text-[var(--ink)]">Submit New Claim</h1>
+          <p className="mt-2 body-md text-[var(--ink-mute)]">
             Fill in the details below and upload your medical documents.
           </p>
         </div>
@@ -107,8 +101,8 @@ export default function NewClaimPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Errors */}
           {errors.length > 0 && (
-            <div className="rounded-md bg-red-50 px-4 py-3">
-              <ul className="list-inside list-disc text-sm text-red-700">
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+              <ul className="list-inside list-disc body-md text-red-700">
                 {errors.map((err, i) => (
                   <li key={i}>{err.message}</li>
                 ))}
@@ -116,47 +110,63 @@ export default function NewClaimPage() {
             </div>
           )}
 
-          {/* Claim Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Claim Details</CardTitle>
-              <CardDescription>
+          {/* Claim Details Card */}
+          <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden">
+            <div className="px-6 py-5 border-b border-[var(--hairline)]">
+              <h2 className="heading-sm text-[var(--ink)]">Claim Details</h2>
+              <p className="mt-1 body-md text-[var(--ink-mute)]">
                 Provide information about your treatment and expenses
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="p-6 space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="category">Claim Category</Label>
-                <Select value={category} onValueChange={(val) => setCategory(val ?? "")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLAIM_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat.replace(/_/g, " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="block caption text-[var(--ink-secondary)]">
+                  Claim Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="input-design w-full text-[var(--ink)] bg-[var(--canvas)] appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="" disabled>
+                    Select a category
+                  </option>
+                  {CLAIM_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="treatment_date">Treatment Date</Label>
-                  <Input
+                  <label
+                    htmlFor="treatment_date"
+                    className="block caption text-[var(--ink-secondary)]"
+                  >
+                    Treatment Date
+                  </label>
+                  <input
                     id="treatment_date"
                     type="date"
                     value={treatmentDate}
                     onChange={(e) => setTreatmentDate(e.target.value)}
                     max={today}
                     required
+                    className="input-design w-full text-[var(--ink)]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="claimed_amount">Claimed Amount (INR)</Label>
-                  <Input
+                  <label
+                    htmlFor="claimed_amount"
+                    className="block caption text-[var(--ink-secondary)]"
+                  >
+                    Claimed Amount (INR)
+                  </label>
+                  <input
                     id="claimed_amount"
                     type="number"
                     min="500"
@@ -165,59 +175,65 @@ export default function NewClaimPage() {
                     value={claimedAmount}
                     onChange={(e) => setClaimedAmount(e.target.value)}
                     required
+                    className="input-design w-full text-[var(--ink)] tabular-nums"
                   />
-                  <p className="text-xs text-gray-500">Minimum Rs. 500</p>
+                  <p className="micro text-[var(--ink-mute)]">Minimum Rs. 500</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="hospital_name">
+                <label
+                  htmlFor="hospital_name"
+                  className="block caption text-[var(--ink-secondary)]"
+                >
                   Hospital/Clinic Name{" "}
-                  <span className="text-gray-400">(optional)</span>
-                </Label>
-                <Input
+                  <span className="text-[var(--ink-mute)]">(optional)</span>
+                </label>
+                <input
                   id="hospital_name"
                   type="text"
                   placeholder="e.g., Apollo Hospital, Mumbai"
                   value={hospitalName}
                   onChange={(e) => setHospitalName(e.target.value)}
                   maxLength={256}
+                  className="input-design w-full text-[var(--ink)]"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Document Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Supporting Documents</CardTitle>
-              <CardDescription>
+          {/* Document Upload Card */}
+          <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden">
+            <div className="px-6 py-5 border-b border-[var(--hairline)]">
+              <h2 className="heading-sm text-[var(--ink)]">Supporting Documents</h2>
+              <p className="mt-1 body-md text-[var(--ink-mute)]">
                 Upload prescriptions, bills, lab reports, or pharmacy receipts.
                 All documents must clearly show patient name and date.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div className="p-6">
               <DocumentUpload
                 claimId={tempClaimId}
                 onFilesChange={handleDocumentsChange}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Submit */}
-          <div className="flex items-center justify-end gap-4">
-            <Link href="/dashboard">
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Link
+              href="/dashboard"
+              className="btn-pill btn-pill-secondary inline-flex items-center text-sm"
+            >
+              Cancel
             </Link>
-            <Button
+            <button
               type="submit"
               disabled={loading || documentKeys.length === 0}
-              className="px-8"
+              className="btn-pill btn-pill-primary inline-flex items-center px-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Submitting..." : "Submit Claim"}
-            </Button>
+            </button>
           </div>
         </form>
       </main>

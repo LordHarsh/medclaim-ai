@@ -103,7 +103,6 @@ export function ClaimProgress({
 
     es.onerror = () => {
       setConnected(false);
-      // Fallback: will retry automatically or page can refresh
     };
 
     return () => {
@@ -117,20 +116,22 @@ export function ClaimProgress({
     <div className="space-y-6">
       {/* Connection indicator */}
       {!["COMPLETED", "FAILED", "NEEDS_REUPLOAD"].includes(status) && (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2">
           <div
             className={`h-2 w-2 rounded-full ${
-              connected ? "bg-green-500 animate-pulse" : "bg-gray-400"
+              connected
+                ? "bg-[var(--primary-indigo)] animate-pulse"
+                : "bg-[var(--ink-mute)]"
             }`}
           />
-          <span className="text-gray-600">
+          <span className="caption text-[var(--ink-mute)]">
             {connected ? "Live tracking active" : "Connecting..."}
           </span>
         </div>
       )}
 
-      {/* Progress steps */}
-      <div className="space-y-3">
+      {/* Vertical stepper */}
+      <div className="space-y-0">
         {STEP_ORDER.slice(0, -1).map((step, index) => {
           const isComplete = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
@@ -138,16 +139,16 @@ export function ClaimProgress({
           const stepMessage = steps.find((s) => s.step === step)?.message;
 
           return (
-            <div key={step} className="flex items-start gap-3">
-              {/* Step indicator */}
+            <div key={step} className="flex items-start gap-4">
+              {/* Step indicator with connecting line */}
               <div className="flex flex-col items-center">
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-300 ${
                     isComplete
-                      ? "border-green-500 bg-green-500"
+                      ? "border-[var(--primary-indigo)] bg-[var(--primary-indigo)]"
                       : isCurrent
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 bg-white"
+                        ? "border-[var(--primary-indigo)] bg-[var(--canvas)]"
+                        : "border-[var(--hairline)] bg-[var(--canvas)]"
                   }`}
                 >
                   {isComplete ? (
@@ -159,43 +160,47 @@ export function ClaimProgress({
                       strokeWidth="3"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-4 w-4 text-white"
+                      className="h-3.5 w-3.5 text-white"
                     >
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   ) : isCurrent ? (
-                    <div className="h-3 w-3 animate-pulse rounded-full bg-blue-500" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-[var(--primary-indigo)] animate-pulse" />
                   ) : (
-                    <div className="h-3 w-3 rounded-full bg-gray-200" />
+                    <div className="h-2 w-2 rounded-full bg-[var(--hairline)]" />
                   )}
                 </div>
                 {index < STEP_ORDER.length - 2 && (
                   <div
-                    className={`h-6 w-0.5 ${
-                      isComplete ? "bg-green-500" : "bg-gray-200"
+                    className={`w-0.5 h-8 transition-colors duration-300 ${
+                      isComplete
+                        ? "bg-[var(--primary-indigo)]"
+                        : "bg-[var(--hairline)]"
                     }`}
                   />
                 )}
               </div>
 
               {/* Step content */}
-              <div className="flex-1 pb-2">
+              <div className="flex-1 pb-4 -mt-0.5">
                 <p
-                  className={`text-sm font-medium ${
+                  className={`body-md transition-colors ${
                     isComplete
-                      ? "text-green-700"
+                      ? "text-[var(--primary-indigo)]"
                       : isCurrent
-                        ? "text-blue-700"
-                        : "text-gray-400"
+                        ? "text-[var(--ink)]"
+                        : "text-[var(--ink-mute)]"
                   }`}
                 >
                   {STEP_LABELS[step] || step}
                 </p>
                 {(isCurrent || isComplete) && stepMessage && (
-                  <p className="mt-0.5 text-xs text-gray-500">{stepMessage}</p>
+                  <p className="mt-0.5 micro text-[var(--ink-mute)]">
+                    {stepMessage}
+                  </p>
                 )}
                 {isCurrent && !isPending && (
-                  <p className="mt-0.5 text-xs text-blue-600 animate-pulse">
+                  <p className="mt-0.5 micro text-[var(--primary-indigo)] animate-pulse">
                     In progress...
                   </p>
                 )}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 
 interface UploadedFile {
   file: File;
@@ -163,31 +162,39 @@ export function DocumentUpload({ claimId, onFilesChange }: DocumentUploadProps) 
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 transition-colors ${
+        className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 transition-all duration-200 ${
           isDragging
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 hover:border-gray-400"
+            ? "border-[var(--primary-indigo)] bg-[var(--primary-bg-subdued)]/20"
+            : "border-[var(--hairline)] hover:border-[var(--hairline-input)]"
         }`}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-10 w-10 text-gray-400"
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+            isDragging ? "bg-[var(--primary-bg-subdued)]" : "bg-[var(--canvas-soft)]"
+          }`}
         >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
-        </svg>
-        <p className="mt-2 text-sm text-gray-600">
-          <span className="font-medium text-blue-600">Click to upload</span> or
-          drag and drop
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`h-6 w-6 transition-colors ${
+              isDragging ? "text-[var(--primary-indigo)]" : "text-[var(--ink-mute)]"
+            }`}
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        </div>
+        <p className="mt-3 body-md text-[var(--ink)]">
+          <span className="text-[var(--primary-indigo)] font-normal">Click to upload</span>{" "}
+          or drag and drop
         </p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 micro text-[var(--ink-mute)]">
           JPEG, PNG, WebP, or PDF (max 10MB per file)
         </p>
         <input
@@ -205,61 +212,61 @@ export function DocumentUpload({ claimId, onFilesChange }: DocumentUploadProps) 
           {files.map((uploadedFile, index) => (
             <li
               key={index}
-              className="flex items-center justify-between rounded-md border bg-white px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] px-4 py-3 transition-all duration-200"
             >
               <div className="flex items-center gap-3">
                 {uploadedFile.status === "uploading" && (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--primary-indigo)] border-t-transparent" />
                 )}
                 {uploadedFile.status === "success" && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-green-600"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-3 w-3 text-emerald-600"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
                 )}
                 {uploadedFile.status === "error" && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-red-600"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="15" y1="9" x2="9" y2="15" />
-                    <line x1="9" y1="9" x2="15" y2="15" />
-                  </svg>
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-3 w-3 text-red-600"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="body-md text-[var(--ink)]">
                     {uploadedFile.file.name}
                   </p>
                   {uploadedFile.error && (
-                    <p className="text-xs text-red-600">{uploadedFile.error}</p>
+                    <p className="micro text-red-600">{uploadedFile.error}</p>
                   )}
                   {uploadedFile.status === "uploading" && (
-                    <p className="text-xs text-blue-600">Uploading...</p>
+                    <p className="micro text-[var(--primary-indigo)]">Uploading...</p>
                   )}
                 </div>
               </div>
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => removeFile(index)}
-                className="text-gray-400 hover:text-gray-600"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-mute)] hover:text-[var(--ink)] hover:bg-[var(--canvas-soft)] transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -274,7 +281,7 @@ export function DocumentUpload({ claimId, onFilesChange }: DocumentUploadProps) 
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
-              </Button>
+              </button>
             </li>
           ))}
         </ul>

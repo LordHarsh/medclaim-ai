@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface TraceStep {
   step_name: string;
@@ -39,11 +37,11 @@ export function TraceViewer({ trace }: TraceViewerProps) {
 
   if (!trace || !trace.steps || trace.steps.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-sm text-gray-500">
+      <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 p-8 text-center">
+        <p className="body-md text-[var(--ink-mute)]">
           Trace data not yet available. Processing may still be in progress.
-        </CardContent>
-      </Card>
+        </p>
+      </div>
     );
   }
 
@@ -60,60 +58,60 @@ export function TraceViewer({ trace }: TraceViewerProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Summary */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Pipeline Trace</CardTitle>
-            <div className="flex items-center gap-2">
-              {trace.degraded && (
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                  Degraded
-                </Badge>
-              )}
-              {trace.total_duration_ms && (
-                <span className="text-xs text-gray-500">
-                  {(trace.total_duration_ms / 1000).toFixed(1)}s total
-                </span>
-              )}
-            </div>
+    <div className="space-y-3">
+      {/* Summary header */}
+      <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="heading-sm text-[var(--ink)]">Pipeline Trace</h3>
+          <div className="flex items-center gap-3">
+            {trace.degraded && (
+              <span className="pill-tag bg-amber-50 text-amber-700 border border-amber-200">
+                Degraded
+              </span>
+            )}
+            {trace.total_duration_ms && (
+              <span className="caption text-[var(--ink-mute)] tabular-nums">
+                {(trace.total_duration_ms / 1000).toFixed(1)}s total
+              </span>
+            )}
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
-      {/* Steps */}
+      {/* Steps accordion */}
       {trace.steps.map((step, index) => (
-        <Card key={index} className="overflow-hidden">
+        <div
+          key={index}
+          className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden"
+        >
           <button
             onClick={() => toggleStep(index)}
-            className="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-gray-50"
+            className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-[var(--canvas-soft)] transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--canvas-soft)] border border-[var(--hairline)] caption text-[var(--ink-mute)]">
                 {step.step_order}
               </span>
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="body-md text-[var(--ink)]">
                   {step.step_name.replace(/_/g, " ")}
                 </p>
-                <p className="text-xs text-gray-500">{step.summary}</p>
+                <p className="micro text-[var(--ink-mute)]">{step.summary}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Badge
-                variant="outline"
-                className={
+              <span
+                className={`pill-tag ${
                   step.status === "COMPLETED"
-                    ? "bg-green-50 text-green-700 border-green-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                     : step.status === "DEGRADED"
-                      ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                      : "bg-red-50 text-red-700 border-red-200"
-                }
+                      ? "bg-amber-50 text-amber-700 border border-amber-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                }`}
               >
                 {step.status}
-              </Badge>
-              <span className="text-xs text-gray-400">
+              </span>
+              <span className="caption text-[var(--ink-mute)] tabular-nums">
                 {step.duration_ms}ms
               </span>
               <svg
@@ -124,7 +122,7 @@ export function TraceViewer({ trace }: TraceViewerProps) {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={`h-4 w-4 text-gray-400 transition-transform ${
+                className={`h-4 w-4 text-[var(--ink-mute)] transition-transform duration-200 ${
                   expandedSteps.has(index) ? "rotate-180" : ""
                 }`}
               >
@@ -134,34 +132,34 @@ export function TraceViewer({ trace }: TraceViewerProps) {
           </button>
 
           {expandedSteps.has(index) && (
-            <CardContent className="border-t bg-gray-50 pt-4">
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-white p-4 text-xs text-gray-700 font-mono border">
+            <div className="border-t border-[var(--hairline)] bg-[var(--canvas-soft)] p-5">
+              <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-[var(--canvas)] border border-[var(--hairline)] p-4 micro font-mono text-[var(--ink-mute)] leading-relaxed">
                 {JSON.stringify(step.details, null, 2)}
               </pre>
-            </CardContent>
+            </div>
           )}
-        </Card>
+        </div>
       ))}
 
       {/* Final Decision */}
       {trace.final_decision && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Calculation Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 overflow-hidden">
+          <div className="px-5 py-4 border-b border-[var(--hairline)]">
+            <h3 className="heading-sm text-[var(--ink)]">Calculation Breakdown</h3>
+          </div>
+          <div className="p-5">
             {trace.final_decision.user_message && (
-              <p className="mb-4 text-sm text-gray-700">
+              <p className="body-md text-[var(--ink-mute)] mb-4">
                 {trace.final_decision.user_message}
               </p>
             )}
             {trace.final_decision.calculation_breakdown && (
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-gray-50 p-4 text-xs text-gray-700 font-mono border">
+              <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-[var(--canvas-soft)] border border-[var(--hairline)] p-4 micro font-mono text-[var(--ink-mute)] leading-relaxed">
                 {JSON.stringify(trace.final_decision.calculation_breakdown, null, 2)}
               </pre>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

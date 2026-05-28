@@ -3,10 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { validateAndBindMember } from "@/lib/actions/onboarding";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -37,11 +33,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas-soft)] px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
+        {/* Logo and heading */}
         <div className="flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-indigo)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -50,59 +46,60 @@ export default function OnboardingPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-7 w-7 text-white"
+              className="h-6 w-6 text-white"
             >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
               <path d="m9 12 2 2 4-4" />
             </svg>
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">
-            Welcome to MedClaim AI
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <h1 className="mt-6 display-md text-[var(--ink)] text-center">
+            Link Your Member ID
+          </h1>
+          <p className="mt-3 body-md text-[var(--ink-mute)] text-center max-w-sm">
             One last step before you can start submitting claims
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Link Your Member Profile</CardTitle>
-            <CardDescription>
-              Enter the Employee/Member ID provided by your employer or insurance
-              provider. This connects your account to your insurance policy.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="member_id">Employee/Member ID</Label>
-                <Input
-                  id="member_id"
-                  name="member_id"
-                  type="text"
-                  placeholder="e.g., EMP001"
-                  required
-                  autoComplete="off"
-                  className="font-mono"
-                />
-                <p className="text-xs text-gray-500">
-                  This is the alphanumeric ID on your insurance card or provided
-                  during enrollment.
-                </p>
+        {/* Card */}
+        <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 body-md text-red-700">
+                {error}
               </div>
+            )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Link Member Profile"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              <label
+                htmlFor="member_id"
+                className="block caption text-[var(--ink-secondary)] font-normal"
+              >
+                Employee/Member ID
+              </label>
+              <input
+                id="member_id"
+                name="member_id"
+                type="text"
+                placeholder="e.g., EMP001"
+                required
+                autoComplete="off"
+                className="input-design w-full font-mono text-[var(--ink)]"
+              />
+              <p className="micro text-[var(--ink-mute)]">
+                This is the alphanumeric ID on your insurance card or provided
+                during enrollment.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-pill btn-pill-primary w-full py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Verifying..." : "Link Member Profile"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
