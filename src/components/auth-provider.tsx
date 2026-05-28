@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate={(href) => router.push(href)}
       Link={Link}
       credentials={{ forgotPassword: true }}
+      redirectTo="/dashboard"
     >
       {children}
     </NeonAuthUIProvider>
