@@ -19,11 +19,23 @@ export async function requireMember() {
     [session.user.id]
   )) as unknown as MemberRow[];
 
-  if (!rows || rows.length === 0) {
-    redirect("/onboarding");
+  if (rows && rows.length > 0) {
+    return { session, member: rows[0] };
   }
 
-  return { session, member: rows[0] };
+  // Auto-create member on first access
+  const memberId = `MBR_${session.user.id.slice(0, 8).toUpperCase()}`;
+  const name = session.user.name || session.user.email?.split("@")[0] || "Member";
+
+  const created = (await sql(
+    `INSERT INTO members (member_id, auth_user_id, name, date_of_birth, gender, relationship, join_date)
+     VALUES ($1, $2, $3, '1990-01-01', 'M', 'SELF', CURRENT_DATE)
+     ON CONFLICT (auth_user_id) DO UPDATE SET auth_user_id = EXCLUDED.auth_user_id
+     RETURNING *`,
+    [memberId, session.user.id, name]
+  )) as unknown as MemberRow[];
+
+  return { session, member: created[0] };
 }
 
 export async function getOptionalSession() {
