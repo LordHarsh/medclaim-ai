@@ -55,3 +55,5 @@ src/__tests__/
 worker/tests/
 worker/pytest.ini
 vitest.config.ts
+
+.vercel
