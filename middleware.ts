@@ -11,4 +11,5 @@ export default auth.middleware({ loginUrl: "/auth/sign-in" });
 
 export const config = {
   matcher: ["/claims/:path*", "/dashboard/:path*", "/onboarding/:path*"],
+  runtime: "nodejs",
 };
