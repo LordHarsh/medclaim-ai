@@ -18,20 +18,17 @@ from config import (
     LANGSMITH_TRACING,
     LOGFIRE_ENVIRONMENT,
     LOGFIRE_SERVICE_NAME,
-    LOGFIRE_SERVICE_VERSION,
-    LOGFIRE_TOKEN,
 )
 
 # Load env vars (for local development)
 load_dotenv()
 
 logfire.configure(
-    token=LOGFIRE_TOKEN,
     service_name=LOGFIRE_SERVICE_NAME,
-    environment=LOGFIRE_ENVIRONMENT,
-    service_version=LOGFIRE_SERVICE_VERSION,
+    environment=LOGFIRE_ENVIRONMENT
 )
 logfire.info("logfire.configured")
+logfire.instrument_aws_lambda()
 
 # Configure LangSmith tracing
 if LANGSMITH_TRACING:

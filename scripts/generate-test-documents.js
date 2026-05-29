@@ -159,7 +159,7 @@ async function generateImageWithFallback(prompt) {
     return await generateWithGemini(prompt);
   } catch (imagenError) {
     console.log(
-      `    Imagen failed (${imagenError.message.substring(0, 80)}), trying Imagen fallback...`
+      `    Gemini failed (${imagenError.message.substring(0, 80)}), trying Imagen fallback...`
     );
     return await generateWithImagen(prompt);
   }
