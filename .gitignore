@@ -51,7 +51,7 @@ aws-actions.txt
 .claude/
 
 # tests (kept locally, not in repo)
-src/__tests__/
+web/src/__tests__/
 worker/tests/
 worker/pytest.ini
 vitest.config.ts
@@ -60,3 +60,4 @@ vitest.config.ts
 resources/test_documents/
 
 .vercel
+.codex/

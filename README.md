@@ -40,7 +40,7 @@ npm install
 cp .env.example .env
 
 # Run development server
-npm run dev
+cd web\nnpm run dev
 ```
 
 ### Worker (Lambda Pipeline)
@@ -71,7 +71,7 @@ python handler.py <claim_id>
 ### Generate Test Documents
 
 ```bash
-npm run generate-docs
+cd web\nnpm run generate-docs
 ```
 
 ## Environment Variables
