@@ -13,19 +13,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Task-to-provider mapping (cost-optimized defaults)
+# Model IDs can be overridden from env without code changes.
+VISION_MODEL = os.getenv("VISION_MODEL", "gemini-3-pro")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
+GEMINI_FAST_MODEL = os.getenv("GEMINI_FAST_MODEL", "gemini-3.0-flash")
+
+# Task-to-provider mapping
 LLM_CONFIG = {
     "vision": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-20250514",
+        "provider": "gemini",
+        "model": VISION_MODEL,
     },
     "text_classification": {
-        "provider": "gemini",
-        "model": "gemini-2.0-flash",
+        "provider": "anthropic",
+        "model": CLAUDE_MODEL,
     },
     "message_generation": {
-        "provider": "gemini",
-        "model": "gemini-2.0-flash",
+        "provider": "anthropic",
+        "model": CLAUDE_MODEL,
     },
 }
 
@@ -33,8 +38,8 @@ LLM_CONFIG = {
 LLM_PROVIDER_OVERRIDE = os.getenv("LLM_PROVIDER_OVERRIDE")  # "anthropic" or "gemini"
 
 OVERRIDE_MODELS = {
-    "anthropic": "claude-sonnet-4-20250514",
-    "gemini": "gemini-2.0-flash",
+    "anthropic": CLAUDE_MODEL,
+    "gemini": GEMINI_FAST_MODEL,
 }
 
 
