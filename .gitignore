@@ -51,6 +51,12 @@ aws-actions.txt
 *.swo
 .claude/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
 # tests (kept locally, not in repo)
 web/src/__tests__/
 worker/tests/
