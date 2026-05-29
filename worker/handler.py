@@ -24,11 +24,11 @@ from config import (
 # Load env vars (for local development)
 load_dotenv()
 
+import os
+os.environ.setdefault("LOGFIRE_TOKEN", LOGFIRE_TOKEN or "")
 logfire.configure(
-    token=LOGFIRE_TOKEN,
     service_name=LOGFIRE_SERVICE_NAME,
     environment=LOGFIRE_ENVIRONMENT,
-    send_to_logfire=True,
 )
 
 # Configure LangSmith tracing
