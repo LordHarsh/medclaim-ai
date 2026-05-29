@@ -147,9 +147,12 @@ def process_claim(claim_id: str):
     pipeline = get_pipeline()
     result = pipeline.invoke(initial_state)
 
-    logger.info(
-        f"Claim {claim_id} processed. Decision: {result.get('final_decision', {}).get('decision', 'N/A')}"
-    )
+    if result:
+        decision = (result.get("final_decision") or {}).get("decision", "N/A")
+        logger.info(f"Claim {claim_id} processed. Decision: {decision}")
+    else:
+        logger.error(f"Claim {claim_id}: pipeline returned None")
+        update_claim_status(claim_id, "FAILED")
 
 
 def lambda_handler(event, context):
