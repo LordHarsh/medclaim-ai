@@ -165,7 +165,7 @@ def process_claim(claim_id: str):
         update_claim_status(claim_id, "FAILED")
         logfire.error("claim.process.failed", claim_id=claim_id, reason="pipeline_returned_none", _exc_info=True)
 
-
+@logfire.instrument()
 def lambda_handler(event, context):
     """
     AWS Lambda entry point.
