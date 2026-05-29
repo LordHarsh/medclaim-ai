@@ -77,8 +77,7 @@ def _classify_condition(
         return result
     except Exception as e:
         logfire.error("policy.condition_classification_failed", error=str(e), _exc_info=True)
-        # Conservative: assume no match on failure
-        return ConditionClassification(matches_condition=False, matched_condition=None, confidence=0.5)
+        raise
 
 
 def _classify_exclusion(
@@ -106,7 +105,7 @@ def _classify_exclusion(
         return result
     except Exception as e:
         logfire.error("policy.exclusion_classification_failed", error=str(e), _exc_info=True)
-        return ExclusionMatch(is_excluded=False, matched_exclusion=None, confidence=0.5)
+        raise
 
 
 def _get_category_config(policy: dict, category: str) -> dict:
@@ -361,10 +360,12 @@ def run_policy_engine(state: ClaimState) -> dict:
             blocking=False,
         ))
 
-    # --- RULE 7: Pre-Authorization (DIAGNOSTIC only) ---
-    if category.upper() == "DIAGNOSTIC":
-        pre_auth_threshold = cat_config.get("pre_auth_threshold", 10000)
-        high_value_tests = cat_config.get("high_value_tests_requiring_pre_auth", [])
+    # --- RULE 7: Pre-Authorization ---
+    # Applies to any category that defines pre_auth_threshold in its config
+    pre_auth_threshold = cat_config.get("pre_auth_threshold")
+    high_value_tests = cat_config.get("high_value_tests_requiring_pre_auth", [])
+
+    if pre_auth_threshold is not None and high_value_tests:
 
         # Check if any high-value tests are present
         tests_ordered = prescription_data.get("tests_ordered", []) if prescription_data else []
@@ -411,10 +412,13 @@ def run_policy_engine(state: ClaimState) -> dict:
         ))
 
     # --- RULE 8: Per-Claim Limit ---
-    # Categories with line-item procedure coverage (DENTAL, VISION) are exempt from
-    # per_claim_limit on claimed_amount — their sub_limit and procedure coverage handle capping.
+    # Categories with procedure lists (covered_procedures/excluded_procedures) are exempt —
+    # their procedure coverage and sub_limit handle capping instead.
     per_claim_limit = coverage.get("per_claim_limit", 5000)
-    has_procedure_coverage = category.upper() in ("DENTAL", "VISION")
+    has_procedure_coverage = bool(
+        cat_config.get("covered_procedures") or cat_config.get("excluded_procedures")
+        or cat_config.get("covered_items") or cat_config.get("excluded_items")
+    )
 
     if has_procedure_coverage:
         rule_evaluations.append(RuleEvaluation(
@@ -435,11 +439,12 @@ def run_policy_engine(state: ClaimState) -> dict:
             rejection_reasons.append("PER_CLAIM_EXCEEDED")
             return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
 
-    # --- RULE 9: Procedure Coverage (DENTAL/VISION only) ---
+    # --- RULE 9: Procedure Coverage ---
+    # Applies to any category with covered/excluded procedure lists in config
     line_item_decisions = None
     eligible_amount = claimed_amount
 
-    if category.upper() in ("DENTAL", "VISION"):
+    if has_procedure_coverage:
         bill_data = extracted_data.get("hospital_bill", {})
         line_items = bill_data.get("line_items", []) if bill_data else []
 

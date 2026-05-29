@@ -11,4 +11,4 @@ def detect_mime_type(image_bytes: bytes) -> str:
         return "application/pdf"
     if image_bytes[:4] == b'RIFF' and image_bytes[8:12] == b'WEBP':
         return "image/webp"
-    return "image/jpeg"
+    raise ValueError(f"Unrecognized image format. First bytes: {image_bytes[:8]!r}")

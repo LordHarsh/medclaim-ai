@@ -27,37 +27,37 @@ def _parse_date(date_str) -> date:
 
 
 def _check_same_day_claims(
-    member_id: str, treatment_date: date, claim_history: list
+    member_id: str, treatment_date: date, claim_history: list, limit: int = 2
 ) -> Optional[FraudSignal]:
-    """Signal 1: More than 2 claims on the same day."""
+    """Signal 1: More claims on the same day than the configured limit."""
     same_day_count = 0
     for claim in claim_history:
         claim_date = _parse_date(claim.get("claim_date", claim.get("date")))
         if claim_date == treatment_date:
             same_day_count += 1
 
-    if same_day_count >= 2:  # 2 prior claims means this is the 3rd+
+    if same_day_count >= limit:
         return FraudSignal(
             signal_type="SAME_DAY_CLAIMS_EXCEEDED",
             severity=0.8,
             weight=1.0,
-            description=f"Member has {same_day_count} prior claims on the same day",
+            description=f"Member has {same_day_count} prior claims on the same day (limit: {limit})",
             evidence=f"{same_day_count} claims already filed for {treatment_date.isoformat()}",
         )
     return None
 
 
 def _check_monthly_claims(
-    member_id: str, treatment_date: date, claim_history: list
+    member_id: str, treatment_date: date, claim_history: list, limit: int = 6
 ) -> Optional[FraudSignal]:
-    """Signal 2: More than 6 claims in the same month."""
+    """Signal 2: More claims in the same month than the configured limit."""
     same_month_count = 0
     for claim in claim_history:
         claim_date = _parse_date(claim.get("claim_date", claim.get("date")))
         if claim_date.year == treatment_date.year and claim_date.month == treatment_date.month:
             same_month_count += 1
 
-    if same_month_count >= 6:
+    if same_month_count >= limit:
         return FraudSignal(
             signal_type="MONTHLY_CLAIMS_EXCEEDED",
             severity=0.6,
@@ -68,9 +68,9 @@ def _check_monthly_claims(
     return None
 
 
-def _check_high_value(claimed_amount: float) -> Optional[FraudSignal]:
-    """Signal 3: Claim amount above Rs. 25,000."""
-    if claimed_amount > 25000:
+def _check_high_value(claimed_amount: float, threshold: float = 25000) -> Optional[FraudSignal]:
+    """Signal 3: Claim amount above the configured threshold."""
+    if claimed_amount > threshold:
         return FraudSignal(
             signal_type="HIGH_VALUE_CLAIM",
             severity=0.4,
@@ -215,6 +215,7 @@ def run_fraud_detection(state: ClaimState) -> dict:
 
     Fully deterministic — no LLM calls.
     Checks 8 fraud signals and computes a risk score.
+    Thresholds are read from policy.fraud_thresholds config.
     """
     # Check for simulated failure (TC011)
     if state.get("simulate_component_failure", False):
@@ -228,18 +229,26 @@ def run_fraud_detection(state: ClaimState) -> dict:
     doc_verification = state.get("doc_verification", {})
     extracted_data = state.get("extracted_data", {})
 
-    # Run all signal checks
+    # Read thresholds from policy config
+    policy = state.get("policy", {})
+    fraud_config = policy.get("fraud_thresholds", {})
+    same_day_limit = fraud_config.get("same_day_claims_limit", 2)
+    monthly_limit = fraud_config.get("monthly_claims_limit", 6)
+    high_value_threshold = fraud_config.get("high_value_claim_threshold", 25000)
+    manual_review_threshold = fraud_config.get("auto_manual_review_above", 25000)
+
+    # Run all signal checks (pass config thresholds)
     signals = []
 
-    signal = _check_same_day_claims(member_id, treatment_date, claim_history)
+    signal = _check_same_day_claims(member_id, treatment_date, claim_history, same_day_limit)
     if signal:
         signals.append(signal)
 
-    signal = _check_monthly_claims(member_id, treatment_date, claim_history)
+    signal = _check_monthly_claims(member_id, treatment_date, claim_history, monthly_limit)
     if signal:
         signals.append(signal)
 
-    signal = _check_high_value(claimed_amount)
+    signal = _check_high_value(claimed_amount, high_value_threshold)
     if signal:
         signals.append(signal)
 
@@ -281,9 +290,9 @@ def run_fraud_detection(state: ClaimState) -> dict:
     else:
         risk_level = "LOW"
 
-    # Manual review thresholds
+    # Manual review thresholds (from policy config)
     requires_manual_review = (
-        fraud_score >= 0.50 or claimed_amount > 25000
+        fraud_score >= 0.50 or claimed_amount > manual_review_threshold
     )
 
     fraud_output = FraudOutput(
