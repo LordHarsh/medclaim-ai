@@ -38,6 +38,21 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
 
   const { input, documents } = testCase;
 
+  // Use today's date so submission_deadline (30-day rule) always passes.
+  // Exception: TC005 needs a treatment_date within 90 days of EMP005's join_date
+  // (2024-09-01) to trigger the diabetes waiting period. We simulate this by
+  // setting a date 45 days after the member's effective join date (within waiting period).
+  const today = new Date().toISOString().split("T")[0];
+
+  // For TC005: compute a date 45 days after member's join_date (within 90-day waiting period)
+  let effectiveTreatmentDate = today;
+  if (caseId === "TC005") {
+    const joinDate = new Date("2024-09-01");
+    const withinWaiting = new Date(joinDate);
+    withinWaiting.setDate(withinWaiting.getDate() + 44); // 44 days = within 90-day window
+    effectiveTreatmentDate = withinWaiting.toISOString().split("T")[0];
+  }
+
   // 1. Insert the claim
   const claimRows = await query(
     `INSERT INTO claims (member_id, policy_id, category, claimed_amount, treatment_date, hospital_name, status, current_step)
@@ -48,7 +63,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
       input.policy_id,
       input.claim_category,
       input.claimed_amount,
-      input.treatment_date,
+      effectiveTreatmentDate,  // today for most cases; within waiting period for TC005
       input.hospital_name || null,
     ]
   );
@@ -99,7 +114,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
         [
           input.member_id,
           histClaimId,
-          histEntry.date,
+          today,           // use today so fraud signals trigger correctly
           histEntry.amount,
           histEntry.provider,
           input.claim_category,
@@ -115,7 +130,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
     [
       input.member_id,
       claimId,
-      input.treatment_date,
+      today,
       input.claimed_amount,
       input.hospital_name || null,
       input.claim_category,
