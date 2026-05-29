@@ -411,18 +411,29 @@ def run_policy_engine(state: ClaimState) -> dict:
         ))
 
     # --- RULE 8: Per-Claim Limit ---
+    # Categories with line-item procedure coverage (DENTAL, VISION) are exempt from
+    # per_claim_limit on claimed_amount — their sub_limit and procedure coverage handle capping.
     per_claim_limit = coverage.get("per_claim_limit", 5000)
-    rule8_passed = claimed_amount <= per_claim_limit
+    has_procedure_coverage = category.upper() in ("DENTAL", "VISION")
 
-    rule_evaluations.append(RuleEvaluation(
-        rule_name="PER_CLAIM_LIMIT",
-        passed=rule8_passed,
-        details=f"Claimed Rs. {claimed_amount} vs per-claim limit Rs. {per_claim_limit}",
-        blocking=not rule8_passed,
-    ))
-    if not rule8_passed:
-        rejection_reasons.append("PER_CLAIM_EXCEEDED")
-        return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
+    if has_procedure_coverage:
+        rule_evaluations.append(RuleEvaluation(
+            rule_name="PER_CLAIM_LIMIT",
+            passed=True,
+            details=f"Per-claim limit not applied to {category} (handled by procedure coverage and sub_limit)",
+            blocking=False,
+        ))
+    else:
+        rule8_passed = claimed_amount <= per_claim_limit
+        rule_evaluations.append(RuleEvaluation(
+            rule_name="PER_CLAIM_LIMIT",
+            passed=rule8_passed,
+            details=f"Claimed Rs. {claimed_amount} vs per-claim limit Rs. {per_claim_limit}",
+            blocking=not rule8_passed,
+        ))
+        if not rule8_passed:
+            rejection_reasons.append("PER_CLAIM_EXCEEDED")
+            return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
 
     # --- RULE 9: Procedure Coverage (DENTAL/VISION only) ---
     line_item_decisions = None
