@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Model IDs can be overridden from env without code changes.
-VISION_MODEL = os.getenv("VISION_MODEL", "gemini-3-pro")
+VISION_MODEL = os.getenv("VISION_MODEL", "gemini-3.1-pro-preview")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 GEMINI_FAST_MODEL = os.getenv("GEMINI_FAST_MODEL", "gemini-3.0-flash")
 

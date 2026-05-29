@@ -28,7 +28,7 @@ const DELAY_MS = 3000; // 3 seconds between API calls
 
 // Models (verified available)
 const IMAGEN_MODEL = "imagen-4.0-fast-generate-001";
-const GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
+const GEMINI_IMAGE_MODEL = "gemini-3-pro-image";
 
 /**
  * Sleep for a given number of milliseconds.
@@ -156,12 +156,12 @@ async function generateWithGemini(prompt) {
  */
 async function generateImageWithFallback(prompt) {
   try {
-    return await generateWithImagen(prompt);
+    return await generateWithGemini(prompt);
   } catch (imagenError) {
     console.log(
-      `    Imagen failed (${imagenError.message.substring(0, 80)}), trying Gemini fallback...`
+      `    Imagen failed (${imagenError.message.substring(0, 80)}), trying Imagen fallback...`
     );
-    return await generateWithGemini(prompt);
+    return await generateWithImagen(prompt);
   }
 }
 
