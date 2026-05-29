@@ -18,17 +18,22 @@ from config import (
     LANGSMITH_TRACING,
     LOGFIRE_ENVIRONMENT,
     LOGFIRE_SERVICE_NAME,
+    LOGFIRE_TOKEN,
 )
 
 # Load env vars (for local development)
 load_dotenv()
 
-logfire.configure(
-    service_name=LOGFIRE_SERVICE_NAME,
-    environment=LOGFIRE_ENVIRONMENT
-)
-logfire.info("logfire.configured")
-logfire.instrument_aws_lambda()
+# Configure logfire — disable sending if no token is set (avoids 401 errors)
+if LOGFIRE_TOKEN:
+    logfire.configure(
+        token=LOGFIRE_TOKEN,
+        service_name=LOGFIRE_SERVICE_NAME,
+        environment=LOGFIRE_ENVIRONMENT,
+        send_to_logfire=True,
+    )
+else:
+    logfire.configure(send_to_logfire=False)
 
 # Configure LangSmith tracing
 if LANGSMITH_TRACING:
@@ -208,6 +213,11 @@ def lambda_handler(event, context):
             raise  # Re-raise so SQS retries
 
     return {"statusCode": 200, "body": "OK"}
+
+
+# Instrument Lambda AFTER lambda_handler is defined (required by logfire API)
+if LOGFIRE_TOKEN:
+    lambda_handler = logfire.instrument_aws_lambda(lambda_handler)
 
 
 # For local testing
