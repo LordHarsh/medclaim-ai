@@ -12,6 +12,7 @@ from typing import Optional
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import get_llm
+from utils import detect_mime_type
 from models.schemas import (
     ExtractionOutput,
     HospitalBillExtraction,
@@ -31,6 +32,9 @@ from prompts.extraction import (
 from state import ClaimState
 
 logger = logging.getLogger(__name__)
+
+
+
 
 
 def _extract_from_content(doc: dict) -> dict:
@@ -125,7 +129,7 @@ def _extract_with_vision(doc: dict, doc_type: str) -> dict:
     if not image_bytes:
         return {"type": doc_type.lower(), "data": None}
 
-    content_type = doc.get("content_type", "image/jpeg")
+    content_type = detect_mime_type(image_bytes)
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
     # Select prompt based on type

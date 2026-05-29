@@ -12,6 +12,7 @@ from typing import Optional
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import get_llm
+from utils import detect_mime_type
 from models.schemas import DocumentClassification, DocumentVerificationOutput, DocumentVerificationResult, PatientMismatch
 from prompts.verification import DOCUMENT_CLASSIFICATION_PROMPT, VERIFICATION_SYSTEM_PROMPT
 from state import ClaimState
@@ -76,8 +77,8 @@ def _classify_document_with_vision(doc: dict) -> DocumentClassification:
             patient_name=None,
         )
 
-    # Encode image for Claude Vision
-    content_type = doc.get("content_type", "image/jpeg")
+    # Detect actual MIME type from magic bytes (don't trust stored content_type)
+    content_type = detect_mime_type(image_bytes)
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
     structured_llm = llm.with_structured_output(DocumentClassification)
