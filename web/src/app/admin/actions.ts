@@ -1,9 +1,18 @@
 "use server";
 
+import { auth } from "@/lib/auth/server";
 import { query } from "@/lib/db";
 import { sendClaimForProcessing } from "@/lib/sqs";
 import { TEST_CASES } from "./test-data";
 import type { ClaimRow } from "@/lib/types";
+
+async function requireAdmin() {
+  const { data: session } = await auth.getSession();
+  if (!session?.user) {
+    throw new Error("Unauthorized: sign in required");
+  }
+  return session;
+}
 
 export interface RunTestCaseResult {
   claim_id: string;
@@ -31,6 +40,8 @@ export interface TestCaseOutcome {
  * Creates a claim in the DB with the test case's documents and sends it to SQS.
  */
 export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
+  await requireAdmin();
+
   const testCase = TEST_CASES.find((tc) => tc.case_id === caseId);
   if (!testCase) {
     throw new Error(`Test case ${caseId} not found`);
@@ -150,6 +161,8 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
 export async function getTestCaseResult(
   claimId: string
 ): Promise<TestCaseOutcome | null> {
+  await requireAdmin();
+
   const rows = (await query(
     `SELECT claim_id, status, decision, approved_amount, confidence_score,
             rejection_reasons, error_message, fraud_score, fraud_signals,

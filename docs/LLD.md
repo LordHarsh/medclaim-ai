@@ -117,7 +117,7 @@
 | Queue | SQS + DLQ | Native Lambda trigger; at-least-once delivery; dead letter for 3x failures |
 | File storage | S3 presigned URLs | Direct client upload bypasses Vercel 4.5MB body limit; cheap; durable |
 | Real-time | SSE polling Neon | Vercel serverless cannot hold WebSocket; polling is simple and reliable |
-| LLM | Claude Sonnet (single model) | Vision + text in one model; strong structured output; no multi-model orchestration |
+| LLM | Claude (Vision) + Gemini (text) | Claude for document OCR/classification; Gemini Flash for text classification and message generation. Configurable via LLM_PROVIDER_OVERRIDE env var |
 | Orchestration | LangGraph | State machine with conditional edges; native LangSmith integration; production-tested |
 | Batch size | 1 claim per Lambda | Isolates failures; each claim independent; simplifies error handling |
 
@@ -1393,7 +1393,7 @@ CMD ["handler.lambda_handler"]
 | Decision | Trade-off | Rationale |
 |----------|-----------|-----------|
 | sub_limit not enforced as per-claim cap | May not match insurer's intent for all edge cases | Test cases TC004 (Rs. 1,350) and TC010 (Rs. 3,240) both exceed the Rs. 2,000 consultation sub_limit, proving it cannot be a per-claim cap. Documented and movable. |
-| Single LLM (Claude) for all tasks | No model diversity; single point of failure | Simpler architecture, consistent output quality, Vision+Text in one API. Fallback: switch to GPT-4V if Claude is down. |
+| Dual LLM (Claude Vision + Gemini text) | Two provider dependencies | Claude is best-in-class for document OCR; Gemini Flash is 10x cheaper for text classification. Switchable via single env var. |
 | Neon Auth (Beta) over Clerk (stable) | Beta service risk | Benefits outweigh risk for a demo: zero webhook sync, direct SQL joins, same DB. For production, monitor Neon Auth stability and have Clerk as fallback. |
 | No CDK/Terraform | Manual AWS setup, not reproducible | 2-3 day timeline. Document that production would use IaC. |
 | SSE via Neon polling (not WebSocket) | 2-second latency in updates | Vercel serverless cannot hold WebSocket. Acceptable for claims (users expect minutes, not seconds). |

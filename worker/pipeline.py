@@ -7,11 +7,8 @@ Defines the claim processing pipeline as a directed graph with:
 - Error wrapping for degradable steps
 """
 
-import json
 import time
-from typing import Optional
 
-import boto3
 import logfire
 from langgraph.graph import END, StateGraph
 
@@ -20,7 +17,6 @@ from agents.doc_verification import run_doc_verification
 from agents.final_decision import run_final_decision
 from agents.fraud_detection import run_fraud_detection
 from agents.policy_engine import run_policy_engine
-from config import AWS_REGION, S3_BUCKET_NAME
 from state import ClaimState
 
 # Step criticality mapping

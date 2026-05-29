@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: Stripi-design-analysis
-description: An inspired interpretation of Stripi's design language — a financial-infrastructure brand built on a deep navy ink, an electric indigo primary, and a recurring atmospheric gradient mesh that occupies the upper third of nearly every marketing page. The system pairs the proprietary Sohne family at thin (300) weights with negative letter-spacing for editorial-density display headlines, and uses tabular-figure body type where money and numerics matter. Buttons are tight-radius pills, cards live on near-white surfaces, and the dashboard track flips polarity to a familiar dark-app shell.
+name: medclaim-design-system
+description: MedClaim AI design system — a health-tech/fintech visual language built on deep navy ink, electric indigo primary, and an atmospheric gradient mesh hero. The system uses Inter at thin (300) weights with negative letter-spacing for editorial-density display headlines, and tabular-figure body type where money and numerics matter. Buttons are tight-radius pills, cards live on near-white surfaces, and the dashboard uses clean functional layouts with hairline borders.
 
 colors:
   primary: "#533afd"

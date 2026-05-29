@@ -10,6 +10,6 @@ const auth = createNeonAuth({
 export default auth.middleware({ loginUrl: "/auth/sign-in" });
 
 export const config = {
-  matcher: ["/claims/:path*", "/dashboard/:path*"],
+  matcher: ["/claims/:path*", "/dashboard/:path*", "/admin/:path*", "/admin"],
   runtime: "nodejs",
 };

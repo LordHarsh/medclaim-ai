@@ -7,6 +7,15 @@ import { sendClaimForProcessing } from "@/lib/sqs";
 import { redirect } from "next/navigation";
 import type { ClaimRow, MemberRow } from "@/lib/types";
 
+function safeJsonParse<T>(value: string | null, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
 export type ActionResult<T = unknown> =
   | { success: true; data: T }
   | { success: false; errors: { field?: string; message: string }[] };
@@ -43,12 +52,8 @@ export async function submitClaim(
     treatment_date: formData.get("treatment_date") as string,
     claimed_amount: parseFloat(formData.get("claimed_amount") as string),
     hospital_name: (formData.get("hospital_name") as string) || null,
-    document_keys: JSON.parse(
-      (formData.get("document_keys") as string) || "[]"
-    ),
-    document_types: JSON.parse(
-      (formData.get("document_types") as string) || "{}"
-    ),
+    document_keys: safeJsonParse(formData.get("document_keys") as string, []),
+    document_types: safeJsonParse(formData.get("document_types") as string, {}),
   };
 
   // Validate

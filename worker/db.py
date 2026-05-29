@@ -12,24 +12,44 @@ import psycopg2.extras
 
 from config import DATABASE_URL
 
+import logfire
+
 psycopg2.extras.register_uuid()
+
+# Module-level connection reused across calls within a single Lambda invocation.
+# Lambda freezes/thaws the execution environment, so the connection persists between
+# warm invocations. If the connection drops, we reconnect.
+_conn: Optional[psycopg2.extensions.connection] = None
+
+
+def _get_or_create_connection() -> psycopg2.extensions.connection:
+    """Get or create the module-level connection."""
+    global _conn
+    if _conn is None or _conn.closed:
+        _conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
+        with _conn.cursor() as cur:
+            cur.execute("SET app.bypass_rls = 'on'")
+        _conn.commit()
+    return _conn
 
 
 @contextmanager
 def get_connection():
-    """Get a database connection with RLS bypass (service role) and auto-commit."""
-    conn = psycopg2.connect(DATABASE_URL)
+    """Get a database connection with RLS bypass. Reuses module-level connection."""
+    conn = _get_or_create_connection()
     try:
-        with conn.cursor() as cur:
-            cur.execute("SET app.bypass_rls = 'on'")
-        conn.commit()
         yield conn
         conn.commit()
     except Exception:
         conn.rollback()
+        # If connection is broken, reset so next call creates a fresh one
+        global _conn
+        try:
+            conn.close()
+        except Exception:
+            pass
+        _conn = None
         raise
-    finally:
-        conn.close()
 
 
 def fetch_claim(claim_id: str) -> Optional[dict]:
