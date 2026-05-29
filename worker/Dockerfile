@@ -10,6 +10,7 @@ COPY pipeline.py ${LAMBDA_TASK_ROOT}/
 COPY state.py ${LAMBDA_TASK_ROOT}/
 COPY config.py ${LAMBDA_TASK_ROOT}/
 COPY db.py ${LAMBDA_TASK_ROOT}/
+COPY utils.py ${LAMBDA_TASK_ROOT}/
 COPY agents/ ${LAMBDA_TASK_ROOT}/agents/
 COPY prompts/ ${LAMBDA_TASK_ROOT}/prompts/
 COPY models/ ${LAMBDA_TASK_ROOT}/models/
