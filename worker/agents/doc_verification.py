@@ -6,8 +6,6 @@ Uses Claude Vision for real images; uses metadata for test cases.
 """
 
 import base64
-import logging
-from typing import Optional
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -16,8 +14,6 @@ from utils import detect_mime_type
 from models.schemas import DocumentClassification, DocumentVerificationOutput, DocumentVerificationResult, PatientMismatch
 from prompts.verification import DOCUMENT_CLASSIFICATION_PROMPT, VERIFICATION_SYSTEM_PROMPT
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
 
 
 def _get_required_types(category: str, policy: dict) -> list[str]:

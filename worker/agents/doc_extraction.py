@@ -6,9 +6,9 @@ For test cases with 'content' field, uses the structured content directly.
 """
 
 import base64
-import logging
 from typing import Optional
 
+import logfire
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import get_llm
@@ -30,11 +30,6 @@ from prompts.extraction import (
     PRESCRIPTION_EXTRACTION_PROMPT,
 )
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
-
-
-
 
 
 def _extract_from_content(doc: dict) -> dict:
@@ -160,7 +155,7 @@ def _extract_with_vision(doc: dict, doc_type: str) -> dict:
         result = structured_llm.invoke([SystemMessage(content=EXTRACTION_SYSTEM_PROMPT), message])
         return {"type": doc_type.lower(), "data": result}
     except Exception as e:
-        logger.error(f"Vision extraction failed for {doc_type}: {e}")
+        logfire.error("doc_extraction.vision_failed", doc_type=doc_type, error=str(e), _exc_info=True)
         return {"type": doc_type.lower(), "data": None}
 
 

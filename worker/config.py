@@ -94,3 +94,11 @@ SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 # LangSmith
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true").lower() == "true"
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "MedClaim.AI")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
+
+# Logfire
+LOGFIRE_TOKEN = os.getenv("LOGFIRE_WRITE_TOKEN") or os.getenv("LOGFIRE_TOKEN")
+LOGFIRE_SERVICE_NAME = os.getenv("LOGFIRE_SERVICE_NAME", "medclaim-worker")
+LOGFIRE_ENVIRONMENT = os.getenv("LOGFIRE_ENV", os.getenv("ENV", "production"))
+LOGFIRE_SERVICE_VERSION = os.getenv("GIT_SHA", "local")

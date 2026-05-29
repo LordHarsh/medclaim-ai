@@ -5,14 +5,11 @@ FULLY DETERMINISTIC — no LLM calls.
 Computes fraud risk score from behavioral and document signals.
 """
 
-import logging
 from datetime import date, datetime
 from typing import Optional
 
 from models.schemas import FraudOutput, FraudSignal
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
 
 
 def _parse_date(date_str) -> date:

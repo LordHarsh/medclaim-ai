@@ -8,11 +8,11 @@ Defines the claim processing pipeline as a directed graph with:
 """
 
 import json
-import logging
 import time
 from typing import Optional
 
 import boto3
+import logfire
 from langgraph.graph import END, StateGraph
 
 from agents.doc_extraction import run_doc_extraction
@@ -22,8 +22,6 @@ from agents.fraud_detection import run_fraud_detection
 from agents.policy_engine import run_policy_engine
 from config import AWS_REGION, S3_BUCKET_NAME
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
 
 # Step criticality mapping
 CRITICAL_STEPS = {"load_context", "doc_verify"}
@@ -107,17 +105,17 @@ def _safe_node(func, step_name: str, is_critical: bool):
             try:
                 update_claim_status(claim_id, "PROCESSING", db_step)
             except Exception as db_err:
-                logger.warning(f"Failed to update DB before {step_name}: {db_err}")
+                logfire.warning("pipeline.db_status_update_failed", claim_id=claim_id, step_name=step_name, error=str(db_err))
 
         start_time = time.time()
         try:
             result = func(state)
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.info(f"Step {step_name} completed in {duration_ms}ms")
+            logfire.info("pipeline.step.completed", claim_id=claim_id, step_name=step_name, duration_ms=duration_ms)
             return result
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
-            logger.error(f"Step {step_name} failed after {duration_ms}ms: {e}")
+            logfire.error("pipeline.step.failed", claim_id=claim_id, step_name=step_name, duration_ms=duration_ms, error=str(e), _exc_info=True)
 
             if is_critical:
                 raise  # Let Lambda fail and SQS retry
@@ -199,7 +197,7 @@ def persist_result_node(state: ClaimState) -> dict:
             trace_json=trace_json,
         )
     except Exception as e:
-        logger.error(f"Failed to persist result for {state['claim_id']}: {e}")
+        logfire.error("pipeline.persist_result.failed", claim_id=state["claim_id"], error=str(e), _exc_info=True)
         # Non-fatal — result is already in state
 
     return {"current_step": "PERSIST_RESULT"}
@@ -219,7 +217,7 @@ def persist_early_stop_node(state: ClaimState) -> dict:
             trace_json=trace_json,
         )
     except Exception as e:
-        logger.error(f"Failed to persist early stop for {state['claim_id']}: {e}")
+        logfire.error("pipeline.persist_early_stop.failed", claim_id=state["claim_id"], error=str(e), _exc_info=True)
 
     return {"current_step": "PERSIST_EARLY_STOP"}
 

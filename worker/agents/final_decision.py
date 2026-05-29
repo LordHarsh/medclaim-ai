@@ -5,16 +5,14 @@ Synthesizes all agent outputs into a final verdict.
 Generates user-facing and ops messages via LLM.
 """
 
-import logging
 from typing import Optional
 
+import logfire
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import get_llm
 from models.schemas import FinalDecisionOutput
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
 
 
 MESSAGE_GENERATION_SYSTEM = """You are generating messages for a health insurance claims decision system in India.
@@ -123,7 +121,7 @@ def _generate_messages(
         return result.user_message, result.ops_summary
 
     except Exception as e:
-        logger.error(f"Message generation failed: {e}")
+        logfire.error("final_decision.message_generation_failed", error=str(e), _exc_info=True)
         # Fallback template messages
         return _template_messages(decision, approved_amount, rejection_reasons)
 

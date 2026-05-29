@@ -4,17 +4,13 @@ Handles all read/write operations for the claims pipeline.
 """
 
 import json
-import logging
 from contextlib import contextmanager
-from datetime import datetime
 from typing import Optional
 
 import psycopg2
 import psycopg2.extras
 
 from config import DATABASE_URL
-
-logger = logging.getLogger(__name__)
 
 psycopg2.extras.register_uuid()
 

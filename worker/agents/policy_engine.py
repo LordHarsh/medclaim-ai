@@ -5,10 +5,10 @@ Applies all policy rules deterministically.
 LLM only used for diagnosis classification (condition matching, exclusion matching).
 """
 
-import logging
 from datetime import date, datetime
 from typing import Optional
 
+import logfire
 from thefuzz import fuzz
 
 from config import get_llm
@@ -26,8 +26,6 @@ from prompts.classification import (
     build_exclusion_classification_prompt,
 )
 from state import ClaimState
-
-logger = logging.getLogger(__name__)
 
 
 def _parse_date(date_str: str) -> date:
@@ -78,7 +76,7 @@ def _classify_condition(
         ])
         return result
     except Exception as e:
-        logger.error(f"Condition classification failed: {e}")
+        logfire.error("policy.condition_classification_failed", error=str(e), _exc_info=True)
         # Conservative: assume no match on failure
         return ConditionClassification(matches_condition=False, matched_condition=None, confidence=0.5)
 
@@ -107,7 +105,7 @@ def _classify_exclusion(
         ])
         return result
     except Exception as e:
-        logger.error(f"Exclusion classification failed: {e}")
+        logfire.error("policy.exclusion_classification_failed", error=str(e), _exc_info=True)
         return ExclusionMatch(is_excluded=False, matched_exclusion=None, confidence=0.5)
 
 

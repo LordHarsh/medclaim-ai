@@ -6,31 +6,43 @@ Each message contains a claim_id to process.
 """
 
 import json
-import logging
-import os
 import traceback
 
 import boto3
+import logfire
 from dotenv import load_dotenv
+from config import (
+    LANGSMITH_API_KEY,
+    LANGSMITH_ENDPOINT,
+    LANGSMITH_PROJECT,
+    LANGSMITH_TRACING,
+    LOGFIRE_ENVIRONMENT,
+    LOGFIRE_SERVICE_NAME,
+    LOGFIRE_SERVICE_VERSION,
+    LOGFIRE_TOKEN,
+)
 
 # Load env vars (for local development)
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+logfire.configure(
+    token=LOGFIRE_TOKEN,
+    service_name=LOGFIRE_SERVICE_NAME,
+    environment=LOGFIRE_ENVIRONMENT,
+    service_version=LOGFIRE_SERVICE_VERSION,
 )
-logger = logging.getLogger("medclaim-worker")
+logfire.info("logfire.configured")
 
 # Configure LangSmith tracing
-if os.getenv("LANGSMITH_TRACING", "true").lower() == "true":
+if LANGSMITH_TRACING:
+    import os
+
     os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
-    os.environ.setdefault("LANGCHAIN_PROJECT", os.getenv("LANGSMITH_PROJECT", "MedClaim.AI"))
-    if os.getenv("LANGSMITH_API_KEY"):
-        os.environ.setdefault("LANGCHAIN_API_KEY", os.getenv("LANGSMITH_API_KEY"))
-    if os.getenv("LANGSMITH_ENDPOINT"):
-        os.environ.setdefault("LANGCHAIN_ENDPOINT", os.getenv("LANGSMITH_ENDPOINT"))
+    os.environ.setdefault("LANGCHAIN_PROJECT", LANGSMITH_PROJECT)
+    if LANGSMITH_API_KEY:
+        os.environ.setdefault("LANGCHAIN_API_KEY", LANGSMITH_API_KEY)
+    if LANGSMITH_ENDPOINT:
+        os.environ.setdefault("LANGCHAIN_ENDPOINT", LANGSMITH_ENDPOINT)
 
 
 def process_claim(claim_id: str):
@@ -55,12 +67,12 @@ def process_claim(claim_id: str):
     from pipeline import get_pipeline
     from state import ClaimState
 
-    logger.info(f"Processing claim: {claim_id}")
+    logfire.info("claim.process.start", claim_id=claim_id)
 
     # Fetch claim from database
     claim = fetch_claim(claim_id)
     if not claim:
-        logger.error(f"Claim not found: {claim_id}")
+        logfire.error("claim.not_found", claim_id=claim_id, _exc_info=True)
         return
 
     # Update status to PROCESSING
@@ -69,13 +81,13 @@ def process_claim(claim_id: str):
     # Fetch related data
     member = fetch_member(claim["member_id"])
     if not member:
-        logger.error(f"Member not found: {claim['member_id']}")
+        logfire.error("member.not_found", claim_id=claim_id, member_id=claim["member_id"], _exc_info=True)
         update_claim_status(claim_id, "FAILED")
         return
 
     policy = fetch_policy_config(claim["policy_id"])
     if not policy:
-        logger.error(f"Policy not found: {claim['policy_id']}")
+        logfire.error("policy.not_found", claim_id=claim_id, policy_id=claim["policy_id"], _exc_info=True)
         update_claim_status(claim_id, "FAILED")
         return
 
@@ -89,7 +101,7 @@ def process_claim(claim_id: str):
             response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=doc["s3_key"])
             doc["image_bytes"] = response["Body"].read()
         except Exception as e:
-            logger.warning(f"Failed to fetch document from S3: {doc['s3_key']}: {e}")
+            logfire.warning("s3.document_fetch_failed", claim_id=claim_id, s3_key=doc["s3_key"], error=str(e))
             doc["image_bytes"] = None
 
     # Fetch claim history for fraud detection
@@ -145,14 +157,16 @@ def process_claim(claim_id: str):
 
     # Run pipeline
     pipeline = get_pipeline()
-    result = pipeline.invoke(initial_state)
+    with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
+        result = pipeline.invoke(initial_state)
 
     if result:
         decision = (result.get("final_decision") or {}).get("decision", "N/A")
-        logger.info(f"Claim {claim_id} processed. Decision: {decision}")
+        logfire.info("claim.process.complete", claim_id=claim_id, decision=decision)
     else:
-        logger.error(f"Claim {claim_id}: pipeline returned None")
+        logfire.error("claim.process.pipeline_returned_none", claim_id=claim_id, _exc_info=True)
         update_claim_status(claim_id, "FAILED")
+        logfire.error("claim.process.failed", claim_id=claim_id, reason="pipeline_returned_none", _exc_info=True)
 
 
 def lambda_handler(event, context):
@@ -161,7 +175,8 @@ def lambda_handler(event, context):
 
     Processes SQS event records containing claim_ids.
     """
-    logger.info(f"Received event with {len(event.get('Records', []))} records")
+    record_count = len(event.get("Records", []))
+    logfire.info("lambda.batch.received", record_count=record_count, aws_request_id=getattr(context, "aws_request_id", None))
 
     for record in event.get("Records", []):
         try:
@@ -169,26 +184,30 @@ def lambda_handler(event, context):
             claim_id = body["claim_id"]
             sqs_message_id = record.get("messageId")
 
-            logger.info(f"Processing SQS message {sqs_message_id} for claim {claim_id}")
+            logfire.info("lambda.record.start", claim_id=claim_id, sqs_message_id=sqs_message_id)
 
             # Idempotency check
             from db import check_idempotency
 
             if sqs_message_id and check_idempotency(claim_id, sqs_message_id):
-                logger.info(f"Claim {claim_id} already processed (idempotency check)")
+                logfire.info("lambda.record.skipped_idempotent", claim_id=claim_id, sqs_message_id=sqs_message_id)
                 continue
 
             # Process the claim
             process_claim(claim_id)
 
         except KeyError as e:
-            logger.error(f"Invalid SQS message format: missing key {e}")
-            logger.error(f"Record body: {record.get('body', 'N/A')}")
+            logfire.error("lambda.record.invalid_message", error=str(e), record_body=record.get("body", "N/A"), _exc_info=True)
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in SQS message: {e}")
+            logfire.error("lambda.record.invalid_json", error=str(e), _exc_info=True)
         except Exception as e:
-            logger.error(f"Failed to process claim: {e}")
-            logger.error(traceback.format_exc())
+            logfire.exception(
+                "lambda.record.exception",
+                claim_id=locals().get("claim_id"),
+                sqs_message_id=locals().get("sqs_message_id"),
+                error=str(e),
+                traceback=traceback.format_exc(),
+            )
             raise  # Re-raise so SQS retries
 
     return {"statusCode": 200, "body": "OK"}
