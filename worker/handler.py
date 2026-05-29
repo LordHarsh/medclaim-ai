@@ -24,16 +24,12 @@ from config import (
 # Load env vars (for local development)
 load_dotenv()
 
-# Configure logfire — disable sending if no token is set (avoids 401 errors)
-if LOGFIRE_TOKEN:
-    logfire.configure(
-        token=LOGFIRE_TOKEN,
-        service_name=LOGFIRE_SERVICE_NAME,
-        environment=LOGFIRE_ENVIRONMENT,
-        send_to_logfire=True,
-    )
-else:
-    logfire.configure(send_to_logfire=False)
+logfire.configure(
+    token=LOGFIRE_TOKEN,
+    service_name=LOGFIRE_SERVICE_NAME,
+    environment=LOGFIRE_ENVIRONMENT,
+    send_to_logfire=True,
+)
 
 # Configure LangSmith tracing
 if LANGSMITH_TRACING:
@@ -216,8 +212,7 @@ def lambda_handler(event, context):
 
 
 # Instrument Lambda AFTER lambda_handler is defined (required by logfire API)
-if LOGFIRE_TOKEN:
-    lambda_handler = logfire.instrument_aws_lambda(lambda_handler)
+lambda_handler = logfire.instrument_aws_lambda(lambda_handler)
 
 
 # For local testing
