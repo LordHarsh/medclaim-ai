@@ -208,8 +208,6 @@ def lambda_handler(event, context):
     return {"statusCode": 200, "body": "OK"}
 
 
-# Instrument Lambda AFTER lambda_handler is defined (required by logfire API)
-lambda_handler = logfire.instrument_aws_lambda(lambda_handler)
 
 
 # For local testing
