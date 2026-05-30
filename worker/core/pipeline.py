@@ -11,111 +11,102 @@ from agents.policy_engine import run_policy_engine
 from core.db import persist_early_stop, persist_final_result, update_claim_status
 from core.state import ClaimState
 
-# Step criticality mapping
-CRITICAL_STEPS = {"doc_verify"}
-DEGRADABLE_STEPS = {"doc_extract", "policy_engine", "fraud_detection", "final_decision"}
+_STEP_DB_NAMES: dict[str, str] = {
+    "doc_verify": "DOCUMENT_VERIFICATION",
+    "doc_extract": "DOCUMENT_EXTRACTION",
+    "policy_engine": "POLICY_ENGINE",
+    "fraud_detection": "FRAUD_DETECTION",
+    "final_decision": "FINAL_DECISION",
+}
 
-
-def _default_result_for_step(step_name: str) -> dict:
-    """Return a safe default result when a degradable step fails."""
-    defaults = {
-        "doc_extract": {
-            "extracted_data": {
-                "prescription": None,
-                "hospital_bill": None,
-                "lab_report": None,
-                "pharmacy_bill": None,
-                "extraction_confidence": 0.3,
-            },
-            "current_step": "DOCUMENT_EXTRACTION",
+_DEGRADATION_DEFAULTS: dict[str, dict] = {
+    "doc_extract": {
+        "extracted_data": {
+            "prescription": None,
+            "hospital_bill": None,
+            "lab_report": None,
+            "pharmacy_bill": None,
+            "extraction_confidence": 0.3,
         },
-        "policy_engine": {
-            "policy_evaluation": {
-                "eligible": True,
-                "decision_suggestion": "MANUAL_REVIEW",
-                "approved_amount": None,
-                "rejection_reasons": [],
-                "calculation_breakdown": None,
-                "rule_evaluations": [],
-                "line_item_decisions": None,
-                "warnings": ["Policy engine failed, routing to manual review"],
-            },
-            "current_step": "POLICY_ENGINE",
+        "current_step": "DOCUMENT_EXTRACTION",
+    },
+    "policy_engine": {
+        "policy_evaluation": {
+            "eligible": True,
+            "decision_suggestion": "MANUAL_REVIEW",
+            "approved_amount": None,
+            "rejection_reasons": [],
+            "calculation_breakdown": None,
+            "rule_evaluations": [],
+            "line_item_decisions": None,
+            "warnings": ["Policy engine failed, routing to manual review"],
         },
-        "fraud_detection": {
-            "fraud_evaluation": {
-                "fraud_score": 0.0,
-                "risk_level": "LOW",
-                "requires_manual_review": False,
-                "signals": [],
-            },
-            "current_step": "FRAUD_DETECTION",
+        "current_step": "POLICY_ENGINE",
+    },
+    "fraud_detection": {
+        "fraud_evaluation": {
+            "fraud_score": 0.0,
+            "risk_level": "LOW",
+            "requires_manual_review": False,
+            "signals": [],
         },
+        "current_step": "FRAUD_DETECTION",
+    },
+    "final_decision": {
         "final_decision": {
-            "final_decision": {
-                "decision": "MANUAL_REVIEW",
-                "approved_amount": None,
-                "confidence_score": 0.5,
-                "rejection_reasons": [],
-                "user_message": "Your claim is being reviewed by our team.",
-                "ops_summary": "Final decision agent failed. Routed to manual review.",
-                "calculation_breakdown": None,
-                "recommendations": ["Manual review required due to system error"],
-            },
+            "decision": "MANUAL_REVIEW",
+            "approved_amount": None,
             "confidence_score": 0.5,
-            "current_step": "FINAL_DECISION",
+            "rejection_reasons": [],
+            "user_message": "Your claim is being reviewed by our team.",
+            "ops_summary": "Final decision agent failed. Routed to manual review.",
+            "calculation_breakdown": None,
+            "recommendations": ["Manual review required due to system error"],
         },
-    }
-    return defaults.get(step_name, {})
+        "confidence_score": 0.5,
+        "current_step": "FINAL_DECISION",
+    },
+}
 
 
-def _safe_node(func, step_name: str, is_critical: bool):
-    """Wrap a node function with error handling and DB status updates."""
+class PipelineNode:
+    """
+    Wraps an agent function with DB status tracking, timing, and error handling.
+    CRITICAL nodes re-raise on failure (SQS retries).
+    DEGRADABLE nodes catch errors, reduce confidence, and return safe defaults.
+    """
 
-    # Map internal step names to DB-friendly step names
-    STEP_DB_NAMES = {
-        "doc_verify": "DOCUMENT_VERIFICATION",
-        "doc_extract": "DOCUMENT_EXTRACTION",
-        "policy_engine": "POLICY_ENGINE",
-        "fraud_detection": "FRAUD_DETECTION",
-        "final_decision": "FINAL_DECISION",
-    }
+    def __init__(self, func, step_name: str, is_critical: bool):
+        self.func = func
+        self.step_name = step_name
+        self.is_critical = is_critical
+        self.db_step = _STEP_DB_NAMES.get(step_name, step_name.upper())
 
-    def wrapper(state: ClaimState) -> dict:
+    def __call__(self, state: ClaimState) -> dict:
         claim_id = state.get("claim_id")
-        db_step = STEP_DB_NAMES.get(step_name, step_name.upper())
 
-        # Update DB status before running (so SSE can show "in progress")
-        if claim_id:
-            try:
-                update_claim_status(claim_id, "PROCESSING", db_step)
-            except Exception as db_err:
-                logfire.warning("pipeline.db_status_update_failed", claim_id=claim_id, step_name=step_name, error=str(db_err))
+        try:
+            update_claim_status(claim_id, "PROCESSING", self.db_step)
+        except Exception as db_err:
+            logfire.warning("pipeline.db_status_update_failed", claim_id=claim_id, step_name=self.step_name, error=str(db_err))
 
         start_time = time.time()
         try:
-            result = func(state)
-            duration_ms = int((time.time() - start_time) * 1000)
-            logfire.info("pipeline.step.completed", claim_id=claim_id, step_name=step_name, duration_ms=duration_ms)
+            result = self.func(state)
+            logfire.info("pipeline.step.completed", claim_id=claim_id, step_name=self.step_name, duration_ms=int((time.time() - start_time) * 1000))
             return result
         except Exception as e:
-            duration_ms = int((time.time() - start_time) * 1000)
-            logfire.error("pipeline.step.failed", claim_id=claim_id, step_name=step_name, duration_ms=duration_ms, error=str(e), _exc_info=True)
+            logfire.error("pipeline.step.failed", claim_id=claim_id, step_name=self.step_name, duration_ms=int((time.time() - start_time) * 1000), error=str(e), _exc_info=True)
 
-            if is_critical:
-                raise  # Let Lambda fail and SQS retry
+            if self.is_critical:
+                raise
 
-            # Degradable: add to degraded_steps, reduce confidence
             degraded = list(state.get("degraded_steps", []))
-            degraded.append(step_name)
-            confidence = state.get("confidence_score", 0.95) - 0.15
-
-            default_result = _default_result_for_step(step_name)
-            default_result["degraded_steps"] = degraded
-            default_result["confidence_score"] = confidence
-            return default_result
-
-    return wrapper
+            degraded.append(self.step_name)
+            default = dict(_DEGRADATION_DEFAULTS.get(self.step_name, {}))
+            default["degraded_steps"] = degraded
+            default["confidence_score"] = state.get("confidence_score", 0.95) - 0.15
+            return default
 
 
 
@@ -255,11 +246,11 @@ def build_pipeline() -> StateGraph:
     graph = StateGraph(ClaimState)
 
     # Add nodes with error wrapping
-    graph.add_node("doc_verify", _safe_node(run_doc_verification, "doc_verify", is_critical=True))
-    graph.add_node("doc_extract", _safe_node(run_doc_extraction, "doc_extract", is_critical=False))
-    graph.add_node("policy_engine", _safe_node(run_policy_engine, "policy_engine", is_critical=False))
-    graph.add_node("fraud_detection", _safe_node(run_fraud_detection, "fraud_detection", is_critical=False))
-    graph.add_node("final_decision", _safe_node(run_final_decision, "final_decision", is_critical=False))
+    graph.add_node("doc_verify",     PipelineNode(run_doc_verification, "doc_verify",     is_critical=True))
+    graph.add_node("doc_extract",    PipelineNode(run_doc_extraction,   "doc_extract",    is_critical=False))
+    graph.add_node("policy_engine",  PipelineNode(run_policy_engine,    "policy_engine",  is_critical=False))
+    graph.add_node("fraud_detection",PipelineNode(run_fraud_detection,  "fraud_detection",is_critical=False))
+    graph.add_node("final_decision", PipelineNode(run_final_decision,   "final_decision", is_critical=False))
     graph.add_node("persist_result", persist_result_node)
     graph.add_node("persist_early_stop", persist_early_stop_node)
 
