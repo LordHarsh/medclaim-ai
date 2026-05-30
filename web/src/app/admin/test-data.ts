@@ -24,6 +24,7 @@ export interface TestCaseInput {
   claimed_amount: number;
   hospital_name?: string;
   claims_history?: ClaimHistoryEntry[];
+  simulate_component_failure?: boolean;
 }
 
 export interface TestCaseExpected {

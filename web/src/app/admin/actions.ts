@@ -66,7 +66,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
 
   // Build metadata — used for test flags like simulate_component_failure (TC011)
   const metadata: Record<string, unknown> = {};
-  if ((input as Record<string, unknown>).simulate_component_failure) {
+  if (input.simulate_component_failure) {
     metadata.simulate_component_failure = true;
   }
 
