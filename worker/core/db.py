@@ -1,198 +1,171 @@
 import json
-from contextlib import contextmanager
+import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
-import psycopg2
-import psycopg2.extras
+from sqlalchemy import create_engine, event, func, text, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
 
 from core.config import DATABASE_URL
+from models.orm import Claim, ClaimDocument, ClaimHistory, Member, PolicyConfig
 
 import logfire
 
-psycopg2.extras.register_uuid()
+# ---------------------------------------------------------------------------
+# Engine + session factory (module-level; reused across warm Lambda invocations)
+# ---------------------------------------------------------------------------
 
-# Module-level connection reused across calls within a single Lambda invocation.
-# Lambda freezes/thaws the execution environment, so the connection persists between
-# warm invocations. If the connection drops, we reconnect.
-_conn: Optional[psycopg2.extensions.connection] = None
-
-
-def _get_or_create_connection() -> psycopg2.extensions.connection:
-    """Get or create the module-level connection."""
-    global _conn
-    if _conn is None or _conn.closed:
-        _conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
-        with _conn.cursor() as cur:
-            cur.execute("SET app.bypass_rls = 'on'")
-        _conn.commit()
-    return _conn
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,   # detect stale connections after Lambda freeze/thaw
+    pool_size=1,          # Lambda is single-threaded per invocation
+    max_overflow=0,
+)
 
 
-@contextmanager
-def get_connection():
-    """Get a database connection with RLS bypass. Reuses module-level connection."""
-    conn = _get_or_create_connection()
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        # If connection is broken, reset so next call creates a fresh one
-        global _conn
-        try:
-            conn.close()
-        except Exception:
-            pass
-        _conn = None
-        raise
+@event.listens_for(engine, "connect")
+def _set_rls_bypass(dbapi_connection, connection_record):
+    """Automatically bypass RLS on every new physical connection."""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("SET app.bypass_rls = 'on'")
+    cursor.close()
 
+
+Session = sessionmaker(bind=engine)
+
+
+# ---------------------------------------------------------------------------
+# Helper: convert a mapped ORM instance to a plain dict
+# ---------------------------------------------------------------------------
+
+def _row_to_dict(instance, table_cls) -> dict:
+    return {col.name: getattr(instance, col.name) for col in table_cls.__table__.columns}
+
+
+# ---------------------------------------------------------------------------
+# Read functions
+# ---------------------------------------------------------------------------
 
 def fetch_claim(claim_id: str) -> Optional[dict]:
     """Fetch claim record by ID."""
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT claim_id, member_id, policy_id, category, claimed_amount,
-                       treatment_date, hospital_name, status, current_step,
-                       sqs_message_id, trace_json, created_at
-                FROM claims
-                WHERE claim_id = %s
-                """,
-                (claim_id,),
-            )
-            row = cur.fetchone()
-            return dict(row) if row else None
+    try:
+        claim_uuid = uuid.UUID(claim_id)
+    except ValueError:
+        return None
+    with Session() as session:
+        claim = session.get(Claim, claim_uuid)
+        if not claim:
+            return None
+        return _row_to_dict(claim, Claim)
 
 
 def fetch_claim_documents(claim_id: str) -> list:
-    """Fetch all documents for a claim."""
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT doc_id, s3_key, original_name, content_type, size_bytes,
-                       detected_type, quality_score, is_readable, quality_issues,
-                       patient_name_found, extraction_json
-                FROM claim_documents
-                WHERE claim_id = %s
-                ORDER BY created_at
-                """,
-                (claim_id,),
-            )
-            return [dict(row) for row in cur.fetchall()]
+    """Fetch all documents for a claim, ordered by created_at."""
+    with Session() as session:
+        docs = (
+            session.query(ClaimDocument)
+            .filter(ClaimDocument.claim_id == uuid.UUID(claim_id))
+            .order_by(ClaimDocument.created_at)
+            .all()
+        )
+        return [_row_to_dict(doc, ClaimDocument) for doc in docs]
 
 
 def fetch_member(member_id: str) -> Optional[dict]:
     """Fetch member record."""
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT member_id, name, date_of_birth, gender, relationship,
-                       join_date, primary_member_id, dependents
-                FROM members
-                WHERE member_id = %s
-                """,
-                (member_id,),
-            )
-            row = cur.fetchone()
-            return dict(row) if row else None
+    with Session() as session:
+        member = session.get(Member, member_id)
+        if not member:
+            return None
+        return _row_to_dict(member, Member)
 
 
 def fetch_policy_config(policy_id: str) -> Optional[dict]:
     """Fetch policy configuration JSON."""
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                "SELECT config_json FROM policy_config WHERE policy_id = %s",
-                (policy_id,),
-            )
-            row = cur.fetchone()
-            if row:
-                config = row["config_json"]
-                return config if isinstance(config, dict) else json.loads(config)
+    with Session() as session:
+        config = session.get(PolicyConfig, policy_id)
+        if not config:
             return None
+        raw = config.config_json
+        return raw if isinstance(raw, dict) else json.loads(raw)
 
 
 def fetch_claim_history(member_id: str) -> list:
-    """Fetch claim history for fraud detection."""
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT claim_id, claim_date, amount, provider, category, status
-                FROM claim_history
-                WHERE member_id = %s
-                ORDER BY claim_date DESC
-                LIMIT 100
-                """,
-                (member_id,),
-            )
-            return [dict(row) for row in cur.fetchall()]
+    """Fetch claim history for fraud detection (most recent 100 records)."""
+    with Session() as session:
+        rows = (
+            session.query(ClaimHistory)
+            .filter(ClaimHistory.member_id == member_id)
+            .order_by(ClaimHistory.claim_date.desc())
+            .limit(100)
+            .all()
+        )
+        return [_row_to_dict(row, ClaimHistory) for row in rows]
 
 
 def fetch_ytd_approved_total(member_id: str, policy_start_date: str) -> float:
     """Calculate year-to-date approved amount for the member."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT COALESCE(SUM(approved_amount), 0)
-                FROM claims
-                WHERE member_id = %s
-                  AND decision = 'APPROVED'
-                  AND created_at >= %s
-                """,
-                (member_id, policy_start_date),
+    with Session() as session:
+        result = (
+            session.query(func.coalesce(func.sum(Claim.approved_amount), 0))
+            .filter(
+                Claim.member_id == member_id,
+                Claim.decision == "APPROVED",
+                Claim.created_at >= policy_start_date,
             )
-            return float(cur.fetchone()[0])
+            .scalar()
+        )
+        return float(result)
 
 
-def update_claim_status(claim_id: str, status: str, current_step: str = None):
+# ---------------------------------------------------------------------------
+# Write functions
+# ---------------------------------------------------------------------------
+
+def update_claim_status(claim_id: str, status: str, current_step: str = None) -> None:
     """Update claim processing status."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE claims
-                SET status = %s,
-                    current_step = COALESCE(%s, current_step),
-                    updated_at = NOW()
-                WHERE claim_id = %s
-                """,
-                (status, current_step, claim_id),
-            )
+    with Session() as session:
+        values = {"status": status, "updated_at": datetime.now(timezone.utc)}
+        if current_step is not None:
+            values["current_step"] = current_step
+        session.execute(
+            update(Claim).where(Claim.claim_id == uuid.UUID(claim_id)).values(**values)
+        )
+        session.commit()
 
 
-def update_claim_step(claim_id: str, current_step: str, step_trace: dict = None):
-    """Update current step and append to trace."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            if step_trace:
-                cur.execute(
+def update_claim_step(claim_id: str, current_step: str, step_trace: dict = None) -> None:
+    """Update current step and, optionally, append to trace via raw SQL."""
+    with Session() as session:
+        if step_trace:
+            session.execute(
+                text(
                     """
                     UPDATE claims
-                    SET current_step = %s,
-                        updated_at = NOW(),
-                        trace_json = jsonb_set(
+                    SET current_step = :step,
+                        updated_at   = NOW(),
+                        trace_json   = jsonb_set(
                             COALESCE(trace_json, '{"steps": []}'),
                             '{steps}',
-                            COALESCE(trace_json->'steps', '[]'::jsonb) || %s::jsonb
+                            COALESCE(trace_json->'steps', '[]'::jsonb) || :trace::jsonb
                         )
-                    WHERE claim_id = %s
-                    """,
-                    (current_step, json.dumps(step_trace), claim_id),
-                )
-            else:
-                cur.execute(
+                    WHERE claim_id = :claim_id
                     """
-                    UPDATE claims
-                    SET current_step = %s, updated_at = NOW()
-                    WHERE claim_id = %s
-                    """,
-                    (current_step, claim_id),
-                )
+                ),
+                {
+                    "step": current_step,
+                    "trace": json.dumps(step_trace),
+                    "claim_id": claim_id,
+                },
+            )
+        else:
+            session.execute(
+                update(Claim)
+                .where(Claim.claim_id == uuid.UUID(claim_id))
+                .values(current_step=current_step, updated_at=datetime.now(timezone.utc))
+            )
+        session.commit()
 
 
 def persist_final_result(
@@ -205,38 +178,28 @@ def persist_final_result(
     fraud_signals: list,
     trace_json: dict,
     error_message: Optional[str] = None,
-):
+) -> None:
     """Write final decision and full trace to the claims table."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE claims
-                SET status = 'COMPLETED',
-                    decision = %s,
-                    approved_amount = %s,
-                    confidence_score = %s,
-                    rejection_reasons = %s,
-                    fraud_score = %s,
-                    fraud_signals = %s,
-                    trace_json = %s,
-                    error_message = %s,
-                    completed_at = NOW(),
-                    updated_at = NOW()
-                WHERE claim_id = %s
-                """,
-                (
-                    decision,
-                    approved_amount,
-                    confidence_score,
-                    rejection_reasons,
-                    fraud_score,
-                    json.dumps(fraud_signals),
-                    json.dumps(trace_json),
-                    error_message,
-                    claim_id,
-                ),
+    now = datetime.now(timezone.utc)
+    with Session() as session:
+        session.execute(
+            update(Claim)
+            .where(Claim.claim_id == uuid.UUID(claim_id))
+            .values(
+                status="COMPLETED",
+                decision=decision,
+                approved_amount=approved_amount,
+                confidence_score=confidence_score,
+                rejection_reasons=rejection_reasons,
+                fraud_score=fraud_score,
+                fraud_signals=fraud_signals,
+                trace_json=trace_json,
+                error_message=error_message,
+                completed_at=now,
+                updated_at=now,
             )
+        )
+        session.commit()
 
 
 def persist_early_stop(
@@ -244,70 +207,63 @@ def persist_early_stop(
     reason: str,
     message: str,
     trace_json: dict,
-):
+) -> None:
     """Write early stop result (NEEDS_REUPLOAD)."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE claims
-                SET status = 'NEEDS_REUPLOAD',
-                    error_message = %s,
-                    trace_json = %s,
-                    completed_at = NOW(),
-                    updated_at = NOW()
-                WHERE claim_id = %s
-                """,
-                (message, json.dumps(trace_json), claim_id),
+    now = datetime.now(timezone.utc)
+    with Session() as session:
+        session.execute(
+            update(Claim)
+            .where(Claim.claim_id == uuid.UUID(claim_id))
+            .values(
+                status="NEEDS_REUPLOAD",
+                error_message=message,
+                trace_json=trace_json,
+                completed_at=now,
+                updated_at=now,
             )
+        )
+        session.commit()
 
 
 def check_idempotency(claim_id: str, sqs_message_id: str) -> bool:
     """
     Check if this SQS message has already been processed.
     Returns True if already processed (should skip).
+
+    Atomically sets sqs_message_id where it is currently NULL.
+    rowcount == 0 means a message ID was already present → duplicate.
+    The unique index on sqs_message_id catches concurrent races.
     """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            # Try to set the sqs_message_id; unique index prevents duplicates
-            try:
-                cur.execute(
-                    """
-                    UPDATE claims
-                    SET sqs_message_id = %s
-                    WHERE claim_id = %s AND sqs_message_id IS NULL
-                    """,
-                    (sqs_message_id, claim_id),
-                )
-                conn.commit()
-                return cur.rowcount == 0  # 0 means already had a message_id
-            except psycopg2.errors.UniqueViolation:
-                conn.rollback()
-                return True
+    with Session() as session:
+        try:
+            result = session.execute(
+                update(Claim)
+                .where(Claim.claim_id == uuid.UUID(claim_id), Claim.sqs_message_id.is_(None))
+                .values(sqs_message_id=sqs_message_id)
+            )
+            session.commit()
+            return result.rowcount == 0  # 0 → already had a message_id
+        except IntegrityError:
+            session.rollback()
+            return True
 
 
-def update_document_verification(claim_id: str, doc_results: list):
+def update_document_verification(claim_id: str, doc_results: list) -> None:
     """Update claim_documents with verification results."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            for doc in doc_results:
-                cur.execute(
-                    """
-                    UPDATE claim_documents
-                    SET detected_type = %s,
-                        quality_score = %s,
-                        is_readable = %s,
-                        quality_issues = %s,
-                        patient_name_found = %s
-                    WHERE claim_id = %s AND s3_key = %s
-                    """,
-                    (
-                        doc.get("detected_type"),
-                        doc.get("quality_score"),
-                        doc.get("is_readable"),
-                        doc.get("quality_issues", []),
-                        doc.get("patient_name_found"),
-                        claim_id,
-                        doc.get("s3_key"),
-                    ),
+    with Session() as session:
+        for doc in doc_results:
+            session.execute(
+                update(ClaimDocument)
+                .where(
+                    ClaimDocument.claim_id == uuid.UUID(claim_id),
+                    ClaimDocument.s3_key == doc.get("s3_key"),
                 )
+                .values(
+                    detected_type=doc.get("detected_type"),
+                    quality_score=doc.get("quality_score"),
+                    is_readable=doc.get("is_readable"),
+                    quality_issues=doc.get("quality_issues", []),
+                    patient_name_found=doc.get("patient_name_found"),
+                )
+            )
+        session.commit()
