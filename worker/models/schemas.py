@@ -1,8 +1,3 @@
-"""
-Pydantic models for all agent I/O structures.
-Used with LangChain's with_structured_output for reliable LLM responses.
-"""
-
 from typing import Optional
 from pydantic import BaseModel, Field
 

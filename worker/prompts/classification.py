@@ -1,11 +1,3 @@
-"""
-Prompts for condition/exclusion classification used by the Policy Engine.
-
-These are now template functions that build prompts dynamically from the policy config,
-rather than hardcoded static strings.
-"""
-
-
 CLASSIFICATION_SYSTEM_PROMPT = """You are a medical condition classifier for an Indian health insurance policy engine.
 
 Your role is to determine if a given diagnosis or treatment matches specific policy conditions (waiting periods or exclusions).

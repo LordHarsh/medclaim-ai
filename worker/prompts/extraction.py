@@ -1,7 +1,3 @@
-"""
-Prompts for the Document Extraction Agent.
-"""
-
 PRESCRIPTION_EXTRACTION_PROMPT = """Extract structured data from this Indian medical prescription.
 
 Look for these fields:

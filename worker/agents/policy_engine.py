@@ -1,14 +1,8 @@
-"""
-Agent 3: Policy Engine
-
-Applies all policy rules deterministically.
-LLM only used for diagnosis classification (condition matching, exclusion matching).
-"""
-
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 import logfire
+from langchain_core.messages import HumanMessage, SystemMessage
 from thefuzz import fuzz
 
 from core.config import get_llm
@@ -67,8 +61,6 @@ def _classify_condition(
         llm = get_llm("text_classification")
         structured_llm = llm.with_structured_output(ConditionClassification)
 
-        from langchain_core.messages import HumanMessage, SystemMessage
-
         prompt = build_condition_classification_prompt(diagnosis_str, treatment_str, policy)
         result = structured_llm.invoke([
             SystemMessage(content=CLASSIFICATION_SYSTEM_PROMPT),
@@ -94,8 +86,6 @@ def _classify_exclusion(
     try:
         llm = get_llm("text_classification")
         structured_llm = llm.with_structured_output(ExclusionMatch)
-
-        from langchain_core.messages import HumanMessage, SystemMessage
 
         prompt = build_exclusion_classification_prompt(diagnosis_str, treatment_str, category, policy)
         result = structured_llm.invoke([
@@ -301,7 +291,6 @@ def run_policy_engine(state: ClaimState) -> dict:
             eligible_from = join_date.replace(
                 day=join_date.day
             )  # placeholder - calculate properly
-            from datetime import timedelta
             eligible_date = join_date + timedelta(days=required_days)
 
             rule_evaluations.append(RuleEvaluation(

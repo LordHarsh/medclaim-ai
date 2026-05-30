@@ -1,14 +1,8 @@
-"""
-Agent 5: Final Decision
-
-Synthesizes all agent outputs into a final verdict.
-Generates user-facing and ops messages via LLM.
-"""
-
 from typing import Optional
 
 import logfire
 from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field
 
 from core.config import get_llm
 from models.schemas import FinalDecisionOutput
@@ -106,8 +100,6 @@ def _generate_messages(
         if fraud_evaluation:
             context += f"Fraud score: {fraud_evaluation.get('fraud_score', 0)}\n"
             context += f"Fraud signals: {[s.get('signal_type') for s in fraud_evaluation.get('signals', [])]}\n"
-
-        from pydantic import BaseModel, Field
 
         class Messages(BaseModel):
             user_message: str = Field(description="Friendly message for the insurance member")

@@ -1,12 +1,3 @@
-"""
-LangGraph State Machine Definition.
-
-Defines the claim processing pipeline as a directed graph with:
-- Nodes: load_context, doc_verify, doc_extract, policy_engine, fraud_detection, final_decision, persist_result, persist_early_stop
-- Conditional edge after doc_verify for early stopping
-- Error wrapping for degradable steps
-"""
-
 import time
 
 import logfire
@@ -17,6 +8,7 @@ from agents.doc_verification import run_doc_verification
 from agents.final_decision import run_final_decision
 from agents.fraud_detection import run_fraud_detection
 from agents.policy_engine import run_policy_engine
+from core.db import persist_early_stop, persist_final_result, update_claim_status
 from core.state import ClaimState
 
 # Step criticality mapping
@@ -91,8 +83,6 @@ def _safe_node(func, step_name: str, is_critical: bool):
     }
 
     def wrapper(state: ClaimState) -> dict:
-        from core.db import update_claim_status
-
         claim_id = state.get("claim_id")
         db_step = STEP_DB_NAMES.get(step_name, step_name.upper())
 
@@ -174,8 +164,6 @@ def final_decision_node(state: ClaimState) -> dict:
 
 def persist_result_node(state: ClaimState) -> dict:
     """Persist final results to database."""
-    from core.db import persist_final_result
-
     final = state.get("final_decision", {})
     fraud = state.get("fraud_evaluation", {})
 
@@ -201,8 +189,6 @@ def persist_result_node(state: ClaimState) -> dict:
 
 def persist_early_stop_node(state: ClaimState) -> dict:
     """Persist early stop result (NEEDS_REUPLOAD)."""
-    from core.db import persist_early_stop
-
     trace_json = _build_trace(state)
 
     try:

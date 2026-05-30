@@ -1,15 +1,10 @@
-"""
-LLM Provider Configuration.
-
-Supports switching between Anthropic (Claude) and Google (Gemini).
-Use LLM_PROVIDER_OVERRIDE env var to force all tasks to one provider.
-"""
-
 import os
 from functools import lru_cache
 from typing import Literal
 
 from dotenv import load_dotenv
+from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
 
@@ -64,8 +59,6 @@ def get_llm(task: Literal["vision", "text_classification", "message_generation"]
     model = config["model"]
 
     if provider == "anthropic":
-        from langchain_anthropic import ChatAnthropic
-
         return ChatAnthropic(
             model=model,
             api_key=os.getenv("ANTHROPIC_API_KEY"),
@@ -73,8 +66,6 @@ def get_llm(task: Literal["vision", "text_classification", "message_generation"]
             max_retries=1,
         )
     elif provider == "gemini":
-        from langchain_google_genai import ChatGoogleGenerativeAI
-
         return ChatGoogleGenerativeAI(
             model=model,
             google_api_key=os.getenv("GEMINI_API_KEY"),
@@ -92,10 +83,10 @@ S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "medclaim-docs-prod")
 SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 
 # LangSmith
-LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true").lower() == "true"
+LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "true")
 LANGSMITH_PROJECT = os.getenv("LANGSMITH_PROJECT", "MedClaim.AI")
-LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
-LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY", "")
+LANGSMITH_ENDPOINT = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
 
 # Logfire
 LOGFIRE_TOKEN = os.getenv("LOGFIRE_WRITE_TOKEN") or os.getenv("LOGFIRE_TOKEN")

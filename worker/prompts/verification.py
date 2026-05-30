@@ -1,7 +1,3 @@
-"""
-Prompts for the Document Verification Agent.
-"""
-
 DOCUMENT_CLASSIFICATION_PROMPT = """Classify this Indian medical document and assess its quality.
 
 Determine:

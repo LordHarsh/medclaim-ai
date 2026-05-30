@@ -1,7 +1,3 @@
-"""
-ClaimState TypedDict — the state passed through the LangGraph pipeline.
-"""
-
 from typing import Optional, TypedDict
 
 

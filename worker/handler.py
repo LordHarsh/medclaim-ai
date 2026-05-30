@@ -1,17 +1,13 @@
-"""
-AWS Lambda Handler — SQS Event Entry Point.
-
-Processes insurance claims triggered by SQS messages.
-Each message contains a claim_id to process.
-"""
-
 import json
+import os
+import sys
 import traceback
 
 import boto3
 import logfire
 from dotenv import load_dotenv
 from core.config import (
+    AWS_REGION,
     LANGSMITH_API_KEY,
     LANGSMITH_ENDPOINT,
     LANGSMITH_PROJECT,
@@ -19,7 +15,21 @@ from core.config import (
     LOGFIRE_ENVIRONMENT,
     LOGFIRE_SERVICE_NAME,
     LOGFIRE_TOKEN,
+    S3_BUCKET_NAME,
 )
+
+from core.db import (
+    check_idempotency,
+    fetch_claim,
+    fetch_claim_documents,
+    fetch_claim_history,
+    fetch_member,
+    fetch_policy_config,
+    fetch_ytd_approved_total,
+    update_claim_status,
+)
+from core.pipeline import get_pipeline
+from core.state import ClaimState
 
 # Load env vars (for local development)
 load_dotenv()
@@ -30,16 +40,10 @@ logfire.configure(
     environment=LOGFIRE_ENVIRONMENT,
 )
 
-# Configure LangSmith tracing
-if LANGSMITH_TRACING:
-    import os
-
-    os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
-    os.environ.setdefault("LANGCHAIN_PROJECT", LANGSMITH_PROJECT)
-    if LANGSMITH_API_KEY:
-        os.environ.setdefault("LANGCHAIN_API_KEY", LANGSMITH_API_KEY)
-    if LANGSMITH_ENDPOINT:
-        os.environ.setdefault("LANGCHAIN_ENDPOINT", LANGSMITH_ENDPOINT)
+os.environ["LANGCHAIN_TRACING_V2"] = str(LANGSMITH_TRACING).lower()
+os.environ["LANGCHAIN_PROJECT"] = LANGSMITH_PROJECT
+os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
+os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
 
 
 def process_claim(claim_id: str):
@@ -51,19 +55,6 @@ def process_claim(claim_id: str):
     3. Run LangGraph pipeline
     4. Results are persisted by the pipeline's persist nodes
     """
-    from core.config import AWS_REGION, S3_BUCKET_NAME
-    from core.db import (
-        fetch_claim,
-        fetch_claim_documents,
-        fetch_claim_history,
-        fetch_member,
-        fetch_policy_config,
-        fetch_ytd_approved_total,
-        update_claim_status,
-    )
-    from core.pipeline import get_pipeline
-    from core.state import ClaimState
-
     logfire.info("claim.process.start", claim_id=claim_id)
 
     # Fetch claim from database
@@ -154,16 +145,20 @@ def process_claim(claim_id: str):
 
     # Run pipeline
     pipeline = get_pipeline()
-    with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
-        result = pipeline.invoke(initial_state)
+    try:
+        with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
+            result = pipeline.invoke(initial_state)
+    except Exception as e:
+        logfire.error("claim.process.pipeline_error", claim_id=claim_id, error=str(e), _exc_info=True)
+        update_claim_status(claim_id, "FAILED")
+        raise  # Re-raise so lambda_handler can retry via SQS
 
     if result:
         decision = (result.get("final_decision") or {}).get("decision", "N/A")
         logfire.info("claim.process.complete", claim_id=claim_id, decision=decision)
     else:
-        logfire.error("claim.process.pipeline_returned_none", claim_id=claim_id, _exc_info=True)
+        logfire.error("claim.process.pipeline_returned_none", claim_id=claim_id)
         update_claim_status(claim_id, "FAILED")
-        logfire.error("claim.process.failed", claim_id=claim_id, reason="pipeline_returned_none", _exc_info=True)
 
 @logfire.instrument()
 def lambda_handler(event, context):
@@ -184,8 +179,6 @@ def lambda_handler(event, context):
             logfire.info("lambda.record.start", claim_id=claim_id, sqs_message_id=sqs_message_id)
 
             # Idempotency check
-            from core.db import check_idempotency
-
             if sqs_message_id and check_idempotency(claim_id, sqs_message_id):
                 logfire.info("lambda.record.skipped_idempotent", claim_id=claim_id, sqs_message_id=sqs_message_id)
                 continue
@@ -205,17 +198,13 @@ def lambda_handler(event, context):
                 error=str(e),
                 traceback=traceback.format_exc(),
             )
-            raise  # Re-raise so SQS retries
+            raise  # Re-raise so SQS retries (claim stays PROCESSING until retries exhausted)
 
     return {"statusCode": 200, "body": "OK"}
 
 
-
-
 # For local testing
 if __name__ == "__main__":
-    import sys
-
     if len(sys.argv) > 1:
         test_claim_id = sys.argv[1]
         process_claim(test_claim_id)

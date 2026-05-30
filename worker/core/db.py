@@ -1,8 +1,3 @@
-"""
-Database access layer for Neon PostgreSQL.
-Handles all read/write operations for the claims pipeline.
-"""
-
 import json
 from contextlib import contextmanager
 from typing import Optional

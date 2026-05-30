@@ -1,6 +1,3 @@
-"""Shared utility functions for the worker pipeline."""
-
-
 def detect_mime_type(image_bytes: bytes) -> str:
     """Detect actual MIME type from magic bytes. Do not trust file extensions or stored content_type."""
     if image_bytes[:8] == b'\x89PNG\r\n\x1a\n':

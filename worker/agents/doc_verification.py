@@ -1,10 +1,3 @@
-"""
-Agent 1: Document Verification
-
-Classifies documents, checks quality, detects patient mismatches.
-Uses Claude Vision for real images; uses metadata for test cases.
-"""
-
 import base64
 
 from langchain_core.messages import HumanMessage, SystemMessage

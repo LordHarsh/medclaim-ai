@@ -1,10 +1,3 @@
-"""
-Agent 2: Document Extraction
-
-Extracts structured data from verified documents using Claude Vision.
-For test cases with 'content' field, uses the structured content directly.
-"""
-
 import base64
 from typing import Optional
 

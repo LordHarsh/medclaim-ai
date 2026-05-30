@@ -1,10 +1,3 @@
-"""
-Agent 4: Fraud Detection
-
-FULLY DETERMINISTIC — no LLM calls.
-Computes fraud risk score from behavioral and document signals.
-"""
-
 from datetime import date, datetime
 from typing import Optional
 
