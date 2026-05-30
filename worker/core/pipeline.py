@@ -118,33 +118,6 @@ def _safe_node(func, step_name: str, is_critical: bool):
     return wrapper
 
 
-# --- Node Functions ---
-
-
-def doc_verify_node(state: ClaimState) -> dict:
-    """Document verification node."""
-    return run_doc_verification(state)
-
-
-def doc_extract_node(state: ClaimState) -> dict:
-    """Document extraction node."""
-    return run_doc_extraction(state)
-
-
-def policy_engine_node(state: ClaimState) -> dict:
-    """Policy engine node."""
-    return run_policy_engine(state)
-
-
-def fraud_detection_node(state: ClaimState) -> dict:
-    """Fraud detection node."""
-    return run_fraud_detection(state)
-
-
-def final_decision_node(state: ClaimState) -> dict:
-    """Final decision node."""
-    return run_final_decision(state)
-
 
 def persist_result_node(state: ClaimState) -> dict:
     """Persist final results to database."""
@@ -282,11 +255,11 @@ def build_pipeline() -> StateGraph:
     graph = StateGraph(ClaimState)
 
     # Add nodes with error wrapping
-    graph.add_node("doc_verify", _safe_node(doc_verify_node, "doc_verify", is_critical=True))
-    graph.add_node("doc_extract", _safe_node(doc_extract_node, "doc_extract", is_critical=False))
-    graph.add_node("policy_engine", _safe_node(policy_engine_node, "policy_engine", is_critical=False))
-    graph.add_node("fraud_detection", _safe_node(fraud_detection_node, "fraud_detection", is_critical=False))
-    graph.add_node("final_decision", _safe_node(final_decision_node, "final_decision", is_critical=False))
+    graph.add_node("doc_verify", _safe_node(run_doc_verification, "doc_verify", is_critical=True))
+    graph.add_node("doc_extract", _safe_node(run_doc_extraction, "doc_extract", is_critical=False))
+    graph.add_node("policy_engine", _safe_node(run_policy_engine, "policy_engine", is_critical=False))
+    graph.add_node("fraud_detection", _safe_node(run_fraud_detection, "fraud_detection", is_critical=False))
+    graph.add_node("final_decision", _safe_node(run_final_decision, "final_decision", is_critical=False))
     graph.add_node("persist_result", persist_result_node)
     graph.add_node("persist_early_stop", persist_early_stop_node)
 
