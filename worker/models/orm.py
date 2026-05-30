@@ -8,7 +8,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    pass
+    @classmethod
+    def get(cls, session, pk):
+        return session.get(cls, pk)
 
 
 class Member(Base):
@@ -24,6 +26,9 @@ class Member(Base):
     primary_member_id: Mapped[Optional[str]] = mapped_column(String(20))
     dependents: Mapped[list] = mapped_column(ARRAY(Text), default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    def __repr__(self) -> str:
+        return f"<Member member_id={self.member_id!r} name={self.name!r}>"
 
 
 class Claim(Base):
@@ -51,6 +56,9 @@ class Claim(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
+    def __repr__(self) -> str:
+        return f"<Claim claim_id={self.claim_id!r} member_id={self.member_id!r} status={self.status!r}>"
+
 
 class ClaimDocument(Base):
     __tablename__ = "claim_documents"
@@ -69,6 +77,9 @@ class ClaimDocument(Base):
     extraction_json: Mapped[Optional[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
+    def __repr__(self) -> str:
+        return f"<ClaimDocument doc_id={self.doc_id!r} claim_id={self.claim_id!r} s3_key={self.s3_key!r}>"
+
 
 class ClaimHistory(Base):
     __tablename__ = "claim_history"
@@ -83,6 +94,9 @@ class ClaimHistory(Base):
     status: Mapped[Optional[str]] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
+    def __repr__(self) -> str:
+        return f"<ClaimHistory id={self.id!r} member_id={self.member_id!r} claim_date={self.claim_date!r}>"
+
 
 class PolicyConfig(Base):
     __tablename__ = "policy_config"
@@ -90,3 +104,6 @@ class PolicyConfig(Base):
     policy_id: Mapped[str] = mapped_column(String(50), primary_key=True)
     config_json: Mapped[dict] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    def __repr__(self) -> str:
+        return f"<PolicyConfig policy_id={self.policy_id!r}>"

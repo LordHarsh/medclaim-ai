@@ -214,7 +214,7 @@ def run_fraud_detection(state: ClaimState) -> dict:
     if state.get("simulate_component_failure", False):
         raise RuntimeError("Simulated component failure in fraud_detection")
 
-    member_id = state["member"].get("member_id", "")
+    member_id = state["member"].member_id
     treatment_date = _parse_date(state["treatment_date"])
     claimed_amount = state["claimed_amount"]
     hospital_name = state.get("hospital_name")

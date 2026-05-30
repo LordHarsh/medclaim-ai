@@ -203,7 +203,7 @@ def run_policy_engine(state: ClaimState) -> dict:
     # --- RULE 1: Member Eligibility ---
     policy_holder = policy.get("policy_holder", {})
     renewal_active = policy_holder.get("renewal_status", "ACTIVE") == "ACTIVE"
-    member_exists = member is not None and member.get("member_id") is not None
+    member_exists = member is not None and member.member_id is not None
 
     rule1_passed = member_exists and renewal_active
     rule_evaluations.append(RuleEvaluation(
@@ -246,7 +246,7 @@ def run_policy_engine(state: ClaimState) -> dict:
         return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
 
     # --- RULE 4: Initial Waiting Period ---
-    join_date_str = member.get("join_date")
+    join_date_str = member.join_date
     if join_date_str:
         join_date = _parse_date(str(join_date_str))
         initial_waiting_days = waiting_periods.get("initial_waiting_period_days", 30)
@@ -284,7 +284,7 @@ def run_policy_engine(state: ClaimState) -> dict:
             specific_conditions = waiting_periods.get("specific_conditions", {})
             required_days = specific_conditions.get(matched_cond, 0)
 
-            join_date = _parse_date(str(member.get("join_date")))
+            join_date = _parse_date(str(member.join_date))
             days_enrolled = (treatment_date - join_date).days
 
             rule5_passed = days_enrolled >= required_days

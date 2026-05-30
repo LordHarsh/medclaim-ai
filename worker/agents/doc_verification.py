@@ -96,7 +96,7 @@ def run_doc_verification(state: ClaimState) -> dict:
     category = state["category"]
     policy = state["policy"]
     member = state["member"]
-    expected_patient_name = member.get("name", "")
+    expected_patient_name = member.name
 
     required_types = _get_required_types(category, policy)
 

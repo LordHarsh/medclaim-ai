@@ -67,15 +67,15 @@ def process_claim(claim_id: str):
     update_claim_status(claim_id, "PROCESSING", "LOAD_CONTEXT")
 
     # Fetch related data
-    member = fetch_member(claim["member_id"])
+    member = fetch_member(claim.member_id)
     if not member:
-        logfire.error("member.not_found", claim_id=claim_id, member_id=claim["member_id"], _exc_info=True)
+        logfire.error("member.not_found", claim_id=claim_id, member_id=claim.member_id, _exc_info=True)
         update_claim_status(claim_id, "FAILED")
         return
 
-    policy = fetch_policy_config(claim["policy_id"])
+    policy = fetch_policy_config(claim.policy_id)
     if not policy:
-        logfire.error("policy.not_found", claim_id=claim_id, policy_id=claim["policy_id"], _exc_info=True)
+        logfire.error("policy.not_found", claim_id=claim_id, policy_id=claim.policy_id, _exc_info=True)
         update_claim_status(claim_id, "FAILED")
         return
 
@@ -86,42 +86,42 @@ def process_claim(claim_id: str):
     s3_client = boto3.client("s3", region_name=AWS_REGION)
     for doc in documents:
         try:
-            response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=doc["s3_key"])
-            doc["image_bytes"] = response["Body"].read()
+            response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=doc.s3_key)
+            doc.image_bytes = response["Body"].read()
         except Exception as e:
-            logfire.warning("s3.document_fetch_failed", claim_id=claim_id, s3_key=doc["s3_key"], error=str(e))
-            doc["image_bytes"] = None
+            logfire.warning("s3.document_fetch_failed", claim_id=claim_id, s3_key=doc.s3_key, error=str(e))
+            doc.image_bytes = None
 
     # Fetch claim history for fraud detection
-    claim_history = fetch_claim_history(claim["member_id"])
+    claim_history = fetch_claim_history(claim.member_id)
 
     # Calculate YTD approved total
     policy_start = policy.get("policy_holder", {}).get("policy_start_date", "2024-04-01")
-    ytd_approved = fetch_ytd_approved_total(claim["member_id"], policy_start)
+    ytd_approved = fetch_ytd_approved_total(claim.member_id, policy_start)
 
     # Check for simulate_component_failure flag in trace_json or metadata
     simulate_failure = False
-    if claim.get("trace_json") and isinstance(claim["trace_json"], dict):
-        simulate_failure = claim["trace_json"].get("simulate_component_failure", False)
+    if claim.trace_json and isinstance(claim.trace_json, dict):
+        simulate_failure = claim.trace_json.get("simulate_component_failure", False)
 
     # Build initial state
     initial_state: ClaimState = {
         "claim_id": claim_id,
         "member": member,
         "policy": policy,
-        "category": claim["category"],
-        "claimed_amount": float(claim["claimed_amount"]),
-        "treatment_date": str(claim["treatment_date"]),
-        "hospital_name": claim.get("hospital_name"),
+        "category": claim.category,
+        "claimed_amount": float(claim.claimed_amount),
+        "treatment_date": str(claim.treatment_date),
+        "hospital_name": claim.hospital_name,
         "documents": documents,
         "claim_history": [
             {
-                "claim_id": str(h.get("claim_id", "")),
-                "date": str(h.get("claim_date", "")),
-                "amount": float(h.get("amount", 0)),
-                "provider": h.get("provider", ""),
-                "category": h.get("category", ""),
-                "status": h.get("status", ""),
+                "claim_id": str(h.claim_id),
+                "date": str(h.claim_date),
+                "amount": float(h.amount),
+                "provider": h.provider or "",
+                "category": h.category or "",
+                "status": h.status or "",
             }
             for h in claim_history
         ],

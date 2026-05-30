@@ -32,22 +32,14 @@ def _set_rls_bypass(dbapi_connection, connection_record):
     cursor.close()
 
 
-Session = sessionmaker(bind=engine)
-
-
-# ---------------------------------------------------------------------------
-# Helper: convert a mapped ORM instance to a plain dict
-# ---------------------------------------------------------------------------
-
-def _row_to_dict(instance, table_cls) -> dict:
-    return {col.name: getattr(instance, col.name) for col in table_cls.__table__.columns}
+Session = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 # ---------------------------------------------------------------------------
 # Read functions
 # ---------------------------------------------------------------------------
 
-def fetch_claim(claim_id: str) -> Optional[dict]:
+def fetch_claim(claim_id: str) -> Optional[Claim]:
     """Fetch claim record by ID."""
     try:
         claim_uuid = uuid.UUID(claim_id)
@@ -57,10 +49,11 @@ def fetch_claim(claim_id: str) -> Optional[dict]:
         claim = session.get(Claim, claim_uuid)
         if not claim:
             return None
-        return _row_to_dict(claim, Claim)
+        session.expunge(claim)
+        return claim
 
 
-def fetch_claim_documents(claim_id: str) -> list:
+def fetch_claim_documents(claim_id: str) -> list[ClaimDocument]:
     """Fetch all documents for a claim, ordered by created_at."""
     with Session() as session:
         docs = (
@@ -69,20 +62,22 @@ def fetch_claim_documents(claim_id: str) -> list:
             .order_by(ClaimDocument.created_at)
             .all()
         )
-        return [_row_to_dict(doc, ClaimDocument) for doc in docs]
+        session.expunge_all()
+        return docs
 
 
-def fetch_member(member_id: str) -> Optional[dict]:
+def fetch_member(member_id: str) -> Optional[Member]:
     """Fetch member record."""
     with Session() as session:
         member = session.get(Member, member_id)
         if not member:
             return None
-        return _row_to_dict(member, Member)
+        session.expunge(member)
+        return member
 
 
 def fetch_policy_config(policy_id: str) -> Optional[dict]:
-    """Fetch policy configuration JSON."""
+    """Fetch policy configuration JSON (returns raw JSONB dict, not ORM object)."""
     with Session() as session:
         config = session.get(PolicyConfig, policy_id)
         if not config:
@@ -91,7 +86,7 @@ def fetch_policy_config(policy_id: str) -> Optional[dict]:
         return raw if isinstance(raw, dict) else json.loads(raw)
 
 
-def fetch_claim_history(member_id: str) -> list:
+def fetch_claim_history(member_id: str) -> list[ClaimHistory]:
     """Fetch claim history for fraud detection (most recent 100 records)."""
     with Session() as session:
         rows = (
@@ -101,7 +96,8 @@ def fetch_claim_history(member_id: str) -> list:
             .limit(100)
             .all()
         )
-        return [_row_to_dict(row, ClaimHistory) for row in rows]
+        session.expunge_all()
+        return rows
 
 
 def fetch_ytd_approved_total(member_id: str, policy_start_date: str) -> float:
