@@ -5,15 +5,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from core.config import get_llm
 from core.utils import detect_mime_type
 from models.schemas import DocumentClassification, DocumentVerificationOutput, DocumentVerificationResult, PatientMismatch
+from models.policy import PolicyConfig
 from prompts.verification import DOCUMENT_CLASSIFICATION_PROMPT, VERIFICATION_SYSTEM_PROMPT
 from core.state import ClaimState
 
 
-def _get_required_types(category: str, policy: dict) -> list[str]:
+def _get_required_types(category: str, policy: PolicyConfig) -> list[str]:
     """Get required document types for a claim category from policy config."""
-    doc_reqs = policy.get("document_requirements", {})
-    category_reqs = doc_reqs.get(category.upper(), doc_reqs.get(category, {}))
-    return category_reqs.get("required", [])
+    req = policy.document_requirements.get(category.upper())
+    return req.required if req else []
 
 
 def _classify_document_from_metadata(doc: dict) -> DocumentClassification:

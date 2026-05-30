@@ -96,7 +96,7 @@ def process_claim(claim_id: str):
     claim_history = fetch_claim_history(claim.member_id)
 
     # Calculate YTD approved total
-    policy_start = policy.get("policy_holder", {}).get("policy_start_date", "2024-04-01")
+    policy_start = policy.policy_holder.policy_start_date
     ytd_approved = fetch_ytd_approved_total(claim.member_id, policy_start)
 
     # Check for simulate_component_failure flag in trace_json or metadata

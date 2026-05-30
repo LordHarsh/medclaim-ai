@@ -20,6 +20,7 @@ from prompts.classification import (
     build_exclusion_classification_prompt,
 )
 from core.state import ClaimState
+from models.policy import PolicyConfig
 
 
 def _parse_date(date_str: str) -> date:
@@ -34,20 +35,9 @@ def _parse_date(date_str: str) -> date:
     raise ValueError(f"Cannot parse date: {date_str}")
 
 
-def _is_network_hospital(hospital_name: Optional[str], network_hospitals: list[str]) -> bool:
-    """Fuzzy match hospital name against network hospital list."""
-    if not hospital_name:
-        return False
-    for network_hosp in network_hospitals:
-        # Use token_set_ratio for fuzzy matching
-        score = fuzz.token_set_ratio(hospital_name.lower(), network_hosp.lower())
-        if score >= 80:
-            return True
-    return False
-
 
 def _classify_condition(
-    diagnosis: list[str], treatment: Optional[str] = None, policy: Optional[dict] = None
+    diagnosis: list[str], treatment: Optional[str] = None, policy: Optional[PolicyConfig] = None
 ) -> Optional[ConditionClassification]:
     """Use LLM to classify diagnosis against waiting period conditions."""
     if not diagnosis:
@@ -55,7 +45,6 @@ def _classify_condition(
 
     diagnosis_str = ", ".join(diagnosis) if isinstance(diagnosis, list) else str(diagnosis)
     treatment_str = treatment or ""
-    policy = policy or {}
 
     try:
         llm = get_llm("text_classification")
@@ -73,7 +62,7 @@ def _classify_condition(
 
 
 def _classify_exclusion(
-    diagnosis: list[str], treatment: Optional[str], category: str, policy: Optional[dict] = None
+    diagnosis: list[str], treatment: Optional[str], category: str, policy: Optional[PolicyConfig] = None
 ) -> Optional[ExclusionMatch]:
     """Use LLM to check if diagnosis/treatment is excluded."""
     if not diagnosis and not treatment:
@@ -81,7 +70,6 @@ def _classify_exclusion(
 
     diagnosis_str = ", ".join(diagnosis) if isinstance(diagnosis, list) else str(diagnosis)
     treatment_str = treatment or ""
-    policy = policy or {}
 
     try:
         llm = get_llm("text_classification")
@@ -98,23 +86,17 @@ def _classify_exclusion(
         raise
 
 
-def _get_category_config(policy: dict, category: str) -> dict:
-    """Get the OPD category configuration from policy."""
-    categories = policy.get("opd_categories", {})
-    return categories.get(category.lower(), {})
-
-
 def _check_procedure_coverage(
-    line_items: list[dict], category: str, policy: dict
+    line_items: list[dict], category: str, policy: PolicyConfig
 ) -> tuple[list[LineItemDecision], float]:
     """
     Check line items against covered/excluded procedure lists.
     Returns (decisions, eligible_amount).
     """
-    cat_config = _get_category_config(policy, category)
+    cat_config = policy.get_category(category)
 
-    covered_procedures = cat_config.get("covered_procedures", cat_config.get("covered_items", []))
-    excluded_procedures = cat_config.get("excluded_procedures", cat_config.get("excluded_items", []))
+    covered_procedures = (cat_config.covered_procedures or cat_config.covered_items) if cat_config else []
+    excluded_procedures = (cat_config.excluded_procedures or cat_config.excluded_items) if cat_config else []
 
     decisions = []
     eligible_amount = 0.0
@@ -190,19 +172,18 @@ def run_policy_engine(state: ClaimState) -> dict:
     today = date.today()
 
     # Get category config
-    cat_config = _get_category_config(policy, category)
-    coverage = policy.get("coverage", {})
-    waiting_periods = policy.get("waiting_periods", {})
-    submission_rules = policy.get("submission_rules", {})
-    network_hospitals = policy.get("network_hospitals", [])
+    cat_config = policy.get_category(category)
+    coverage = policy.coverage
+    waiting_periods = policy.waiting_periods
+    submission_rules = policy.submission_rules
+    network_hospitals = policy.network_hospitals
 
     rule_evaluations = []
     rejection_reasons = []
     warnings = []
 
     # --- RULE 1: Member Eligibility ---
-    policy_holder = policy.get("policy_holder", {})
-    renewal_active = policy_holder.get("renewal_status", "ACTIVE") == "ACTIVE"
+    renewal_active = policy.policy_holder.renewal_status == "ACTIVE"
     member_exists = member is not None and member.member_id is not None
 
     rule1_passed = member_exists and renewal_active
@@ -217,7 +198,7 @@ def run_policy_engine(state: ClaimState) -> dict:
         return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
 
     # --- RULE 2: Submission Deadline ---
-    deadline_days = submission_rules.get("deadline_days_from_treatment", 30)
+    deadline_days = submission_rules.deadline_days_from_treatment
     days_since_treatment = (today - treatment_date).days
     rule2_passed = days_since_treatment <= deadline_days
 
@@ -232,7 +213,7 @@ def run_policy_engine(state: ClaimState) -> dict:
         return _build_rejected_output(rule_evaluations, rejection_reasons, warnings)
 
     # --- RULE 3: Minimum Amount ---
-    min_amount = submission_rules.get("minimum_claim_amount", 500)
+    min_amount = submission_rules.minimum_claim_amount
     rule3_passed = claimed_amount >= min_amount
 
     rule_evaluations.append(RuleEvaluation(
@@ -249,7 +230,7 @@ def run_policy_engine(state: ClaimState) -> dict:
     join_date_str = member.join_date
     if join_date_str:
         join_date = _parse_date(str(join_date_str))
-        initial_waiting_days = waiting_periods.get("initial_waiting_period_days", 30)
+        initial_waiting_days = waiting_periods.initial_waiting_period_days
         days_enrolled = (treatment_date - join_date).days
         rule4_passed = days_enrolled >= initial_waiting_days
 
@@ -281,7 +262,7 @@ def run_policy_engine(state: ClaimState) -> dict:
 
         if condition_result and condition_result.matches_condition:
             matched_cond = condition_result.matched_condition
-            specific_conditions = waiting_periods.get("specific_conditions", {})
+            specific_conditions = waiting_periods.specific_conditions
             required_days = specific_conditions.get(matched_cond, 0)
 
             join_date = _parse_date(str(member.join_date))
@@ -351,8 +332,8 @@ def run_policy_engine(state: ClaimState) -> dict:
 
     # --- RULE 7: Pre-Authorization ---
     # Applies to any category that defines pre_auth_threshold in its config
-    pre_auth_threshold = cat_config.get("pre_auth_threshold")
-    high_value_tests = cat_config.get("high_value_tests_requiring_pre_auth", [])
+    pre_auth_threshold = cat_config.pre_auth_threshold if cat_config else None
+    high_value_tests = cat_config.high_value_tests_requiring_pre_auth if cat_config else []
 
     if pre_auth_threshold is not None and high_value_tests:
 
@@ -403,10 +384,12 @@ def run_policy_engine(state: ClaimState) -> dict:
     # --- RULE 8: Per-Claim Limit ---
     # Categories with procedure lists (covered_procedures/excluded_procedures) are exempt —
     # their procedure coverage and sub_limit handle capping instead.
-    per_claim_limit = coverage.get("per_claim_limit", 5000)
+    per_claim_limit = coverage.per_claim_limit
     has_procedure_coverage = bool(
-        cat_config.get("covered_procedures") or cat_config.get("excluded_procedures")
-        or cat_config.get("covered_items") or cat_config.get("excluded_items")
+        cat_config and (
+            cat_config.covered_procedures or cat_config.excluded_procedures
+            or cat_config.covered_items or cat_config.excluded_items
+        )
     )
 
     if has_procedure_coverage:
@@ -499,18 +482,18 @@ def run_policy_engine(state: ClaimState) -> dict:
     original_amount = claimed_amount
 
     # Step B: Network Discount (APPLIED FIRST)
-    is_network = _is_network_hospital(hospital_name, network_hospitals)
-    network_discount_pct = cat_config.get("network_discount_percent", 0) if is_network else 0
+    is_network = policy.is_network_hospital(hospital_name)
+    network_discount_pct = (cat_config.network_discount_percent if cat_config else 0) if is_network else 0
     discount_amount = eligible_amount * (network_discount_pct / 100)
     amount_after_discount = eligible_amount - discount_amount
 
     # Step C: Co-pay (APPLIED AFTER discount)
-    copay_pct = cat_config.get("copay_percent", 0)
+    copay_pct = cat_config.copay_percent if cat_config else 0
     copay_amount = amount_after_discount * (copay_pct / 100)
     amount_after_copay = amount_after_discount - copay_amount
 
     # Step D: Annual OPD Limit
-    annual_opd_limit = coverage.get("annual_opd_limit", 50000)
+    annual_opd_limit = coverage.annual_opd_limit
     remaining = annual_opd_limit - ytd_approved
     final_amount = min(amount_after_copay, remaining)
 

@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from models.schemas import FraudOutput, FraudSignal
+from models.policy import PolicyConfig
 from core.state import ClaimState
 
 
@@ -223,12 +224,11 @@ def run_fraud_detection(state: ClaimState) -> dict:
     extracted_data = state.get("extracted_data", {})
 
     # Read thresholds from policy config
-    policy = state.get("policy", {})
-    fraud_config = policy.get("fraud_thresholds", {})
-    same_day_limit = fraud_config.get("same_day_claims_limit", 2)
-    monthly_limit = fraud_config.get("monthly_claims_limit", 6)
-    high_value_threshold = fraud_config.get("high_value_claim_threshold", 25000)
-    manual_review_threshold = fraud_config.get("auto_manual_review_above", 25000)
+    policy: PolicyConfig = state.get("policy")
+    same_day_limit = policy.fraud_thresholds.same_day_claims_limit
+    monthly_limit = policy.fraud_thresholds.monthly_claims_limit
+    high_value_threshold = policy.fraud_thresholds.high_value_claim_threshold
+    manual_review_threshold = policy.fraud_thresholds.auto_manual_review_above
 
     # Run all signal checks (pass config thresholds)
     signals = []

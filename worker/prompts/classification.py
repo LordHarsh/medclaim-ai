@@ -1,3 +1,5 @@
+from models.policy import PolicyConfig
+
 CLASSIFICATION_SYSTEM_PROMPT = """You are a medical condition classifier for an Indian health insurance policy engine.
 
 Your role is to determine if a given diagnosis or treatment matches specific policy conditions (waiting periods or exclusions).
@@ -23,14 +25,14 @@ _CONDITION_DESCRIPTIONS = {
 }
 
 
-def build_condition_classification_prompt(diagnosis: str, treatment: str, policy: dict) -> str:
+def build_condition_classification_prompt(diagnosis: str, treatment: str, policy: PolicyConfig) -> str:
     """Build condition classification prompt from policy config.
 
     Reads specific_conditions from the policy's waiting_periods section and
     constructs the list dynamically so that any policy changes are reflected
     automatically.
     """
-    specific_conditions = policy.get("waiting_periods", {}).get("specific_conditions", {})
+    specific_conditions = policy.waiting_periods.specific_conditions
 
     # Build condition list lines
     condition_lines = []
@@ -60,27 +62,25 @@ Return your classification as structured output."""
 
 
 def build_exclusion_classification_prompt(
-    diagnosis: str, treatment: str, category: str, policy: dict
+    diagnosis: str, treatment: str, category: str, policy: PolicyConfig
 ) -> str:
     """Build exclusion classification prompt from policy config.
 
     Reads general exclusions, dental exclusions, and vision exclusions from
     the policy's exclusions section and constructs the prompt dynamically.
     """
-    exclusions = policy.get("exclusions", {})
-
     # General exclusions
-    general_exclusions = exclusions.get("conditions", [])
+    general_exclusions = policy.exclusions.conditions
     general_lines = [f"- {excl}" for excl in general_exclusions]
     general_text = "\n".join(general_lines) if general_lines else "- (None defined)"
 
     # Dental-specific exclusions
-    dental_exclusions = exclusions.get("dental_exclusions", [])
+    dental_exclusions = policy.exclusions.dental_exclusions
     dental_lines = [f"- {excl}" for excl in dental_exclusions]
     dental_text = "\n".join(dental_lines) if dental_lines else "- (None defined)"
 
     # Vision-specific exclusions
-    vision_exclusions = exclusions.get("vision_exclusions", [])
+    vision_exclusions = policy.exclusions.vision_exclusions
     vision_lines = [f"- {excl}" for excl in vision_exclusions]
     vision_text = "\n".join(vision_lines) if vision_lines else "- (None defined)"
 

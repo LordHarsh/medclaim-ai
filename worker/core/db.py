@@ -8,7 +8,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from core.config import DATABASE_URL
-from models.orm import Claim, ClaimDocument, ClaimHistory, Member, PolicyConfig
+from models.orm import Claim, ClaimDocument, ClaimHistory, Member
+from models.orm import PolicyConfig as PolicyConfigORM
+from models.policy import PolicyConfig
 
 import logfire
 
@@ -76,14 +78,14 @@ def fetch_member(member_id: str) -> Optional[Member]:
         return member
 
 
-def fetch_policy_config(policy_id: str) -> Optional[dict]:
-    """Fetch policy configuration JSON (returns raw JSONB dict, not ORM object)."""
+def fetch_policy_config(policy_id: str) -> Optional[PolicyConfig]:
+    """Fetch and parse policy configuration into a typed PolicyConfig Pydantic model."""
     with Session() as session:
-        config = session.get(PolicyConfig, policy_id)
+        config = session.get(PolicyConfigORM, policy_id)
         if not config:
             return None
-        raw = config.config_json
-        return raw if isinstance(raw, dict) else json.loads(raw)
+        raw = config.config_json if isinstance(config.config_json, dict) else json.loads(config.config_json)
+        return PolicyConfig.model_validate(raw)
 
 
 def fetch_claim_history(member_id: str) -> list[ClaimHistory]:
