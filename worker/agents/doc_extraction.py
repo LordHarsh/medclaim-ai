@@ -11,8 +11,8 @@ from typing import Optional
 import logfire
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import get_llm
-from utils import detect_mime_type
+from core.config import get_llm
+from core.utils import detect_mime_type
 from models.schemas import (
     ExtractionOutput,
     HospitalBillExtraction,
@@ -29,7 +29,7 @@ from prompts.extraction import (
     PHARMACY_BILL_EXTRACTION_PROMPT,
     PRESCRIPTION_EXTRACTION_PROMPT,
 )
-from state import ClaimState
+from core.state import ClaimState
 
 
 def _extract_from_content(doc: dict) -> dict:

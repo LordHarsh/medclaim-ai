@@ -10,9 +10,9 @@ from typing import Optional
 import logfire
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import get_llm
+from core.config import get_llm
 from models.schemas import FinalDecisionOutput
-from state import ClaimState
+from core.state import ClaimState
 
 
 MESSAGE_GENERATION_SYSTEM = """You are generating messages for a health insurance claims decision system in India.

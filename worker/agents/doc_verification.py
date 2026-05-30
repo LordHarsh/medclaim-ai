@@ -9,11 +9,11 @@ import base64
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from config import get_llm
-from utils import detect_mime_type
+from core.config import get_llm
+from core.utils import detect_mime_type
 from models.schemas import DocumentClassification, DocumentVerificationOutput, DocumentVerificationResult, PatientMismatch
 from prompts.verification import DOCUMENT_CLASSIFICATION_PROMPT, VERIFICATION_SYSTEM_PROMPT
-from state import ClaimState
+from core.state import ClaimState
 
 
 def _get_required_types(category: str, policy: dict) -> list[str]:

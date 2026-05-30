@@ -9,7 +9,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from models.schemas import FraudOutput, FraudSignal
-from state import ClaimState
+from core.state import ClaimState
 
 
 def _parse_date(date_str) -> date:

@@ -11,7 +11,7 @@ from typing import Optional
 import logfire
 from thefuzz import fuzz
 
-from config import get_llm
+from core.config import get_llm
 from models.schemas import (
     CalculationBreakdown,
     ConditionClassification,
@@ -25,7 +25,7 @@ from prompts.classification import (
     build_condition_classification_prompt,
     build_exclusion_classification_prompt,
 )
-from state import ClaimState
+from core.state import ClaimState
 
 
 def _parse_date(date_str: str) -> date:

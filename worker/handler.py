@@ -11,7 +11,7 @@ import traceback
 import boto3
 import logfire
 from dotenv import load_dotenv
-from config import (
+from core.config import (
     LANGSMITH_API_KEY,
     LANGSMITH_ENDPOINT,
     LANGSMITH_PROJECT,
@@ -51,8 +51,8 @@ def process_claim(claim_id: str):
     3. Run LangGraph pipeline
     4. Results are persisted by the pipeline's persist nodes
     """
-    from config import AWS_REGION, S3_BUCKET_NAME
-    from db import (
+    from core.config import AWS_REGION, S3_BUCKET_NAME
+    from core.db import (
         fetch_claim,
         fetch_claim_documents,
         fetch_claim_history,
@@ -61,8 +61,8 @@ def process_claim(claim_id: str):
         fetch_ytd_approved_total,
         update_claim_status,
     )
-    from pipeline import get_pipeline
-    from state import ClaimState
+    from core.pipeline import get_pipeline
+    from core.state import ClaimState
 
     logfire.info("claim.process.start", claim_id=claim_id)
 
@@ -184,7 +184,7 @@ def lambda_handler(event, context):
             logfire.info("lambda.record.start", claim_id=claim_id, sqs_message_id=sqs_message_id)
 
             # Idempotency check
-            from db import check_idempotency
+            from core.db import check_idempotency
 
             if sqs_message_id and check_idempotency(claim_id, sqs_message_id):
                 logfire.info("lambda.record.skipped_idempotent", claim_id=claim_id, sqs_message_id=sqs_message_id)
