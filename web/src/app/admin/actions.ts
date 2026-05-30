@@ -64,18 +64,25 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
     effectiveTreatmentDate = withinWaiting.toISOString().split("T")[0];
   }
 
+  // Build metadata — used for test flags like simulate_component_failure (TC011)
+  const metadata: Record<string, unknown> = {};
+  if ((input as Record<string, unknown>).simulate_component_failure) {
+    metadata.simulate_component_failure = true;
+  }
+
   // 1. Insert the claim
   const claimRows = await query(
-    `INSERT INTO claims (member_id, policy_id, category, claimed_amount, treatment_date, hospital_name, status, current_step)
-     VALUES ($1, $2, $3, $4, $5, $6, 'QUEUED', 'SUBMITTED')
+    `INSERT INTO claims (member_id, policy_id, category, claimed_amount, treatment_date, hospital_name, status, current_step, claim_metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, 'QUEUED', 'SUBMITTED', $7)
      RETURNING claim_id`,
     [
       input.member_id,
       input.policy_id,
       input.claim_category,
       input.claimed_amount,
-      effectiveTreatmentDate,  // today for most cases; within waiting period for TC005
+      effectiveTreatmentDate,
       input.hospital_name || null,
+      JSON.stringify(metadata),
     ]
   );
 

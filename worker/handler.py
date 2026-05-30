@@ -99,10 +99,7 @@ def process_claim(claim_id: str):
     policy_start = policy.policy_holder.policy_start_date
     ytd_approved = fetch_ytd_approved_total(claim.member_id, policy_start)
 
-    # Check for simulate_component_failure flag in trace_json or metadata
-    simulate_failure = False
-    if claim.trace_json and isinstance(claim.trace_json, dict):
-        simulate_failure = claim.trace_json.get("simulate_component_failure", False)
+    simulate_failure = bool((claim.claim_metadata or {}).get("simulate_component_failure", False))
 
     # Build initial state
     initial_state: ClaimState = {

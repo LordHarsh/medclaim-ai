@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS claims (
     -- Full trace for explainability
     trace_json        JSONB DEFAULT '{}',
 
+    -- Arbitrary input metadata (e.g. simulate_component_failure for testing)
+    claim_metadata     JSONB DEFAULT '{}',
+
     -- SQS idempotency
     sqs_message_id    VARCHAR(128),
 

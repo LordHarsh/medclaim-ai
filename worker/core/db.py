@@ -12,7 +12,6 @@ from models.orm import Claim, ClaimDocument, ClaimHistory, Member
 from models.orm import PolicyConfig as PolicyConfigORM
 from models.policy import PolicyConfig
 
-import logfire
 
 # ---------------------------------------------------------------------------
 # Engine + session factory (module-level; reused across warm Lambda invocations)

@@ -51,6 +51,7 @@ class Claim(Base):
     fraud_score: Mapped[Optional[float]] = mapped_column(Numeric(4, 3))
     fraud_signals: Mapped[Optional[dict]] = mapped_column(JSON, default=list)
     trace_json: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
+    claim_metadata: Mapped[Optional[dict]] = mapped_column("claim_metadata", JSON, default=dict)
     sqs_message_id: Mapped[Optional[str]] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
