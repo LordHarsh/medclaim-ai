@@ -12,7 +12,7 @@ from core.db import persist_early_stop, persist_final_result, update_claim_statu
 from core.state import ClaimState
 
 # Step criticality mapping
-CRITICAL_STEPS = {"load_context", "doc_verify"}
+CRITICAL_STEPS = {"doc_verify"}
 DEGRADABLE_STEPS = {"doc_extract", "policy_engine", "fraud_detection", "final_decision"}
 
 
@@ -74,7 +74,6 @@ def _safe_node(func, step_name: str, is_critical: bool):
 
     # Map internal step names to DB-friendly step names
     STEP_DB_NAMES = {
-        "load_context": "LOAD_CONTEXT",
         "doc_verify": "DOCUMENT_VERIFICATION",
         "doc_extract": "DOCUMENT_EXTRACTION",
         "policy_engine": "POLICY_ENGINE",
@@ -120,21 +119,6 @@ def _safe_node(func, step_name: str, is_critical: bool):
 
 
 # --- Node Functions ---
-
-
-def load_context_node(state: ClaimState) -> dict:
-    """
-    Load all data needed for processing.
-    Fetches from DB and S3.
-    """
-    # In the actual Lambda, this would have already been done by the handler
-    # This node ensures the state is properly initialized
-    return {
-        "current_step": "LOAD_CONTEXT",
-        "should_stop_early": False,
-        "degraded_steps": state.get("degraded_steps", []),
-        "confidence_score": state.get("confidence_score", 0.95),
-    }
 
 
 def doc_verify_node(state: ClaimState) -> dict:
@@ -298,7 +282,6 @@ def build_pipeline() -> StateGraph:
     graph = StateGraph(ClaimState)
 
     # Add nodes with error wrapping
-    graph.add_node("load_context", _safe_node(load_context_node, "load_context", is_critical=True))
     graph.add_node("doc_verify", _safe_node(doc_verify_node, "doc_verify", is_critical=True))
     graph.add_node("doc_extract", _safe_node(doc_extract_node, "doc_extract", is_critical=False))
     graph.add_node("policy_engine", _safe_node(policy_engine_node, "policy_engine", is_critical=False))
@@ -307,9 +290,8 @@ def build_pipeline() -> StateGraph:
     graph.add_node("persist_result", persist_result_node)
     graph.add_node("persist_early_stop", persist_early_stop_node)
 
-    # Define edges
-    graph.set_entry_point("load_context")
-    graph.add_edge("load_context", "doc_verify")
+    # Define edges — entry point is doc_verify, handler pre-loads all context
+    graph.set_entry_point("doc_verify")
 
     # Conditional edge after verification
     graph.add_conditional_edges(

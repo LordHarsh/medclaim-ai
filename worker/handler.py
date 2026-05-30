@@ -63,8 +63,7 @@ def process_claim(claim_id: str):
         logfire.error("claim.not_found", claim_id=claim_id, _exc_info=True)
         return
 
-    # Update status to PROCESSING
-    update_claim_status(claim_id, "PROCESSING", "LOAD_CONTEXT")
+    update_claim_status(claim_id, "PROCESSING", "DOCUMENT_VERIFICATION")
 
     # Fetch related data
     member = fetch_member(claim.member_id)
@@ -135,7 +134,7 @@ def process_claim(claim_id: str):
         "early_stop_message": None,
         "degraded_steps": [],
         "confidence_score": 0.95,
-        "current_step": "LOAD_CONTEXT",
+        "current_step": "DOCUMENT_VERIFICATION",
         # Metadata
         "simulate_component_failure": simulate_failure,
     }
