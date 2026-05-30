@@ -151,7 +151,7 @@ def process_claim(claim_id: str):
         raise  # Re-raise so lambda_handler can retry via SQS
 
     if result:
-        decision = (result.get("final_decision") or {}).get("decision", "N/A")
+        decision = result["final_decision"]["decision"]
         logfire.info("claim.process.complete", claim_id=claim_id, decision=decision)
     else:
         logfire.error("claim.process.pipeline_returned_none", claim_id=claim_id)
