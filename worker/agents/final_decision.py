@@ -30,40 +30,34 @@ def _calculate_confidence(
     extraction_confidence: float,
     doc_quality_scores: list[float],
     fraud_score: float,
-) -> float:
+) -> tuple[float, list[dict]]:
     """
-    Calculate final confidence score.
-
-    Base: 0.95
-    Deductions:
-    - Per degraded step: -0.15
-    - extraction_confidence < 0.8: -(0.8 - extraction_confidence) * 0.3
-    - Any doc quality_score < 0.6: -0.05 per doc
-    - fraud_score > 0.3: -0.10
-    - LLM used for blocking rejection: -0.05
+    Calculate final confidence score with itemized deductions.
+    Returns (score, deductions_list) for full explainability.
     """
     base = 0.95
-    deductions = 0.0
+    deductions_list = []
 
-    # Degraded steps
     degraded_steps = state.get("degraded_steps", [])
-    deductions += len(degraded_steps) * 0.15
+    if degraded_steps:
+        amount = len(degraded_steps) * 0.15
+        deductions_list.append({"reason": f"degraded steps: {', '.join(degraded_steps)}", "deduction": round(amount, 3)})
 
-    # Extraction confidence
     if extraction_confidence < 0.8:
-        deductions += (0.8 - extraction_confidence) * 0.3
+        amount = (0.8 - extraction_confidence) * 0.3
+        deductions_list.append({"reason": f"low extraction confidence ({extraction_confidence:.2f})", "deduction": round(amount, 3)})
 
-    # Document quality
-    for score in doc_quality_scores:
-        if score < 0.6:
-            deductions += 0.05
+    low_quality_count = sum(1 for s in doc_quality_scores if s < 0.6)
+    if low_quality_count:
+        amount = low_quality_count * 0.05
+        deductions_list.append({"reason": f"{low_quality_count} document(s) with quality < 0.6", "deduction": round(amount, 3)})
 
-    # Fraud score
     if fraud_score > 0.3:
-        deductions += 0.10
+        deductions_list.append({"reason": f"elevated fraud score ({fraud_score:.3f})", "deduction": 0.10})
 
-    final = max(0.10, base - deductions)
-    return round(final, 3)
+    total_deductions = sum(d["deduction"] for d in deductions_list)
+    final = max(0.10, base - total_deductions)
+    return round(final, 3), deductions_list
 
 
 def _generate_messages(
@@ -187,8 +181,8 @@ def run_final_decision(state: ClaimState) -> dict:
     # Get extraction confidence
     extraction_confidence = extracted_data.get("extraction_confidence", 0.9) if extracted_data else 0.9
 
-    # Calculate confidence
-    confidence = _calculate_confidence(
+    # Calculate confidence with itemized deductions for explainability
+    confidence, confidence_deductions = _calculate_confidence(
         state, extraction_confidence, doc_quality_scores, fraud_score
     )
 
@@ -233,11 +227,16 @@ def run_final_decision(state: ClaimState) -> dict:
     # Build calculation breakdown for output
     calc_breakdown = policy_evaluation.get("calculation_breakdown")
 
+    # Get line_item_decisions from policy evaluation (for PARTIAL decisions)
+    line_items = policy_evaluation.get("line_item_decisions") if policy_evaluation else None
+
     final_output = FinalDecisionOutput(
         decision=decision,
         approved_amount=approved_amount,
         confidence_score=confidence,
+        confidence_deductions=confidence_deductions,
         rejection_reasons=rejection_reasons,
+        line_item_decisions=line_items,
         user_message=user_message,
         ops_summary=ops_summary,
         calculation_breakdown=calc_breakdown,

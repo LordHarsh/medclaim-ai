@@ -212,6 +212,7 @@ def _build_trace(state: ClaimState) -> dict:
                 "step_order": 2,
                 "status": "COMPLETED",
                 "summary": "Data extraction completed",
+                "details": state["extracted_data"],
             }
         )
 

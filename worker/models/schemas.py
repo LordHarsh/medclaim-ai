@@ -115,6 +115,7 @@ class LabReportExtraction(BaseModel):
     tests: list[TestResult] = Field(default_factory=list)
     referring_doctor: Optional[str] = None
     date: Optional[str] = None
+    field_confidences: dict = Field(default_factory=dict)
 
 
 class PharmacyBillExtraction(BaseModel):
@@ -125,6 +126,8 @@ class PharmacyBillExtraction(BaseModel):
     medicines: list[dict] = Field(default_factory=list)
     total: Optional[float] = None
     prescribing_doctor: Optional[str] = None
+    date: Optional[str] = None
+    field_confidences: dict = Field(default_factory=dict)
 
 
 class ExtractionOutput(BaseModel):
@@ -239,7 +242,9 @@ class FinalDecisionOutput(BaseModel):
     decision: str  # APPROVED, PARTIAL, REJECTED, MANUAL_REVIEW
     approved_amount: Optional[float] = None
     confidence_score: float
+    confidence_deductions: list[dict] = Field(default_factory=list)
     rejection_reasons: list[str] = Field(default_factory=list)
+    line_item_decisions: Optional[list[dict]] = None
     user_message: str
     ops_summary: str
     calculation_breakdown: Optional[dict] = None
