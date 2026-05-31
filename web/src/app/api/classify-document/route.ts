@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Call Gemini for classification
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent([
       {
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ detected_type, confidence });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Classification failed";
+    console.error("[classify-document] Error:", message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
