@@ -537,7 +537,7 @@ export function SingleDocUpload({
             <div>
               <p className="body-md text-[var(--ink)]">{currentFile.name}</p>
               <p className="micro text-[var(--ink-mute)]">
-                {label} &middot; {formatSize(currentFile.size)}
+                {label}
               </p>
             </div>
           </div>

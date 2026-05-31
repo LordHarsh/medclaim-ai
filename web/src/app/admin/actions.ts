@@ -50,7 +50,7 @@ export async function getAllClaims(): Promise<DashboardClaim[]> {
     member_id: row.member_id,
     category: row.category,
     claimed_amount: row.claimed_amount != null ? Number(row.claimed_amount) : 0,
-    treatment_date: row.treatment_date,
+    treatment_date: String(row.treatment_date),
     hospital_name: row.hospital_name,
     status: row.status,
     decision: row.decision,
@@ -62,8 +62,8 @@ export async function getAllClaims(): Promise<DashboardClaim[]> {
     fraud_signals: row.fraud_signals,
     trace_json: row.trace_json,
     current_step: row.current_step,
-    created_at: row.created_at,
-    completed_at: row.completed_at,
+    created_at: row.created_at ? String(row.created_at) : "",
+    completed_at: row.completed_at ? String(row.completed_at) : null,
   }));
 }
 

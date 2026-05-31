@@ -18,6 +18,7 @@ interface UploadedDoc {
   name: string;
   size: number;
   s3Key: string;
+  detectedType?: string | null;
 }
 
 export default function NewClaimPage() {
@@ -34,18 +35,16 @@ export default function NewClaimPage() {
   // Generate a temporary claim ID for file uploads
   const [tempClaimId] = useState(() => crypto.randomUUID());
 
-  const handleUploadComplete = useCallback((docType: string, s3Key: string) => {
+  const handleUploadComplete = useCallback((docType: string, s3Key: string, detectedType?: string | null) => {
     setUploadedDocs((prev) => {
-      // Extract filename from the s3Key (last segment)
       const parts = s3Key.split("/");
       const fullName = parts[parts.length - 1];
-      // Remove the docType prefix we added
       const name = fullName.startsWith(`${docType}_`)
         ? fullName.slice(docType.length + 1)
         : fullName;
       return {
         ...prev,
-        [docType]: { name, size: 0, s3Key },
+        [docType]: { name, size: 0, s3Key, detectedType },
       };
     });
   }, []);
