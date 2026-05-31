@@ -295,6 +295,13 @@ export function DocumentUpload({ claimId, onFilesChange }: DocumentUploadProps) 
    Used by the category-aware form to provide one upload input per document type.
    ======================================================================== */
 
+type ClassificationStatus = "idle" | "classifying" | "done" | "error";
+
+interface ClassificationResult {
+  detected_type: string;
+  confidence: number;
+}
+
 interface SingleDocUploadProps {
   claimId: string;
   docType: string;
@@ -319,6 +326,29 @@ export function SingleDocUpload({
   );
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [classificationStatus, setClassificationStatus] = useState<ClassificationStatus>("idle");
+  const [classification, setClassification] = useState<ClassificationResult | null>(null);
+
+  const classifyDocument = useCallback(async (s3Key: string, contentType: string) => {
+    setClassificationStatus("classifying");
+    setClassification(null);
+    try {
+      const res = await fetch("/api/classify-document", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ s3_key: s3Key, content_type: contentType }),
+      });
+      if (!res.ok) {
+        setClassificationStatus("error");
+        return;
+      }
+      const data = (await res.json()) as ClassificationResult;
+      setClassification(data);
+      setClassificationStatus("done");
+    } catch {
+      setClassificationStatus("error");
+    }
+  }, []);
 
   const uploadFile = useCallback(
     async (file: File) => {
@@ -343,6 +373,8 @@ export function SingleDocUpload({
 
       setStatus("uploading");
       setError(null);
+      setClassificationStatus("idle");
+      setClassification(null);
 
       try {
         const params = new URLSearchParams({
@@ -371,12 +403,14 @@ export function SingleDocUpload({
 
         setStatus("success");
         onUploadComplete(docType, data.s3_key);
+        // Classify after upload — fire and forget (non-blocking)
+        classifyDocument(data.s3_key, file.type);
       } catch (err) {
         setStatus("error");
         setError(err instanceof Error ? err.message : "Upload failed");
       }
     },
-    [claimId, docType, onUploadComplete]
+    [claimId, docType, onUploadComplete, classifyDocument]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -400,6 +434,8 @@ export function SingleDocUpload({
   const handleRemove = () => {
     setStatus("idle");
     setError(null);
+    setClassificationStatus("idle");
+    setClassification(null);
     onRemove(docType);
   };
 
@@ -409,57 +445,123 @@ export function SingleDocUpload({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // If a file is uploaded/uploading, show the file info
-  if (status === "success" && currentFile) {
-    return (
-      <div
-        className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-all duration-200 ${
-          required
-            ? "border-l-[3px] border-l-[var(--primary-indigo)] border-t-[var(--hairline)] border-r-[var(--hairline)] border-b-[var(--hairline)]"
-            : "border-[var(--hairline)]"
-        } bg-[var(--canvas)]`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3 w-3 text-emerald-600"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-          <div>
-            <p className="body-md text-[var(--ink)]">{currentFile.name}</p>
-            <p className="micro text-[var(--ink-mute)]">
-              {label} &middot; {formatSize(currentFile.size)}
-            </p>
-          </div>
+  // Classification badge helper
+  const renderClassificationBadge = () => {
+    if (classificationStatus === "idle") return null;
+
+    if (classificationStatus === "classifying") {
+      return (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <div className="h-3 w-3 animate-spin rounded-full border border-[var(--ink-mute)] border-t-transparent" />
+          <span className="micro text-[var(--ink-mute)]">Classifying...</span>
         </div>
-        <button
-          type="button"
-          onClick={handleRemove}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-mute)] hover:text-[var(--ink)] hover:bg-[var(--canvas-soft)] transition-colors"
-        >
+      );
+    }
+
+    if (classificationStatus === "error" || !classification) return null;
+
+    const detectedLabel = classification.detected_type
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const isMatch = classification.detected_type === docType;
+
+    if (isMatch) {
+      return (
+        <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 border border-emerald-200">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="h-4 w-4"
+            className="h-2.5 w-2.5 text-emerald-600 shrink-0"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
+            <polyline points="20 6 9 17 4 12" />
           </svg>
-        </button>
+          <span className="micro text-emerald-700">{detectedLabel} detected</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 border border-amber-200">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-2.5 w-2.5 text-amber-600 shrink-0"
+        >
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <span className="micro text-amber-700">{detectedLabel} detected</span>
+      </div>
+    );
+  };
+
+  // If a file is uploaded/uploading, show the file info
+  if (status === "success" && currentFile) {
+    return (
+      <div
+        className={`rounded-lg border px-4 py-3 transition-all duration-200 ${
+          required
+            ? "border-l-[3px] border-l-[var(--primary-indigo)] border-t-[var(--hairline)] border-r-[var(--hairline)] border-b-[var(--hairline)]"
+            : "border-[var(--hairline)]"
+        } bg-[var(--canvas)]`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 shrink-0">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3 w-3 text-emerald-600"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <div>
+              <p className="body-md text-[var(--ink)]">{currentFile.name}</p>
+              <p className="micro text-[var(--ink-mute)]">
+                {label} &middot; {formatSize(currentFile.size)}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-mute)] hover:text-[var(--ink)] hover:bg-[var(--canvas-soft)] transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        {renderClassificationBadge()}
       </div>
     );
   }

@@ -8,7 +8,7 @@ from agents.doc_verification import run_doc_verification
 from agents.final_decision import run_final_decision
 from agents.fraud_detection import run_fraud_detection
 from agents.policy_engine import run_policy_engine
-from core.db import persist_early_stop, persist_final_result, update_claim_status
+from core.db import persist_early_stop, persist_final_result, update_claim_status, update_document_verification
 from core.state import ClaimState
 
 _STEP_DB_NAMES: dict[str, str] = {
@@ -131,6 +131,18 @@ def persist_result_node(state: ClaimState) -> dict:
     final = state.get("final_decision", {})
     fraud = state.get("fraud_evaluation", {})
 
+    # Write document verification results back to claim_documents table
+    doc_results = state.get("doc_verification", {}).get("documents", [])
+    if doc_results:
+        try:
+            update_document_verification(state["claim_id"], doc_results)
+        except Exception as e:
+            logfire.warning(
+                "pipeline.persist_result.doc_verification_update_failed",
+                claim_id=state["claim_id"],
+                error=str(e),
+            )
+
     trace_json = _build_trace(state)
 
     try:
@@ -160,6 +172,18 @@ def persist_result_node(state: ClaimState) -> dict:
 
 def persist_early_stop_node(state: ClaimState) -> dict:
     """Persist early stop result (NEEDS_REUPLOAD)."""
+    # Write document verification results back to claim_documents table
+    doc_results = state.get("doc_verification", {}).get("documents", [])
+    if doc_results:
+        try:
+            update_document_verification(state["claim_id"], doc_results)
+        except Exception as e:
+            logfire.warning(
+                "pipeline.persist_early_stop.doc_verification_update_failed",
+                claim_id=state["claim_id"],
+                error=str(e),
+            )
+
     trace_json = _build_trace(state)
 
     try:

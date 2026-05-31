@@ -246,7 +246,7 @@ def check_idempotency(claim_id: str, sqs_message_id: str) -> bool:
 
 
 def update_document_verification(claim_id: str, doc_results: list) -> None:
-    """Update claim_documents with verification results."""
+    """Update claim_documents with Vision/LLM verification results (detected_type, quality, patient name)."""
     with Session() as session:
         for doc in doc_results:
             session.execute(
