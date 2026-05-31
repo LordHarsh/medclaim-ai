@@ -56,9 +56,11 @@ MATCHING RULES:
 1. Only match when the diagnosis EXPLICITLY names or directly refers to one of the listed conditions
 2. A diagnostic investigation (MRI, CT scan, blood test) is NOT a match — it's just a test being ordered
 3. Spinal, orthopedic, neurological conditions do NOT match "joint_replacement" — only actual joint replacement SURGERY matches
-4. Conditions that appear in the policy's exclusion list should NOT be matched here as waiting period conditions — they are handled separately by the exclusion check
+4. If the diagnosis/treatment is EXCLUDED under the policy (obesity, bariatric, cosmetic, weight loss, substance abuse, experimental), return matches_condition=false — these are handled by the exclusion rule, NOT the waiting period rule
 5. Acute/common illnesses (fever, infections, pain, headaches) never match chronic condition categories
 6. When in doubt, return matches_condition=false — false negatives are preferred over false positives
+
+CRITICAL: Obesity, bariatric surgery, and weight loss programs are POLICY EXCLUSIONS — they must NOT match the obesity_treatment waiting period. Return matches_condition=false for any obesity/bariatric/weight diagnosis.
 
 Return your classification as structured output."""
 
