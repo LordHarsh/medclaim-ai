@@ -88,15 +88,32 @@ class PipelineNode:
         try:
             update_claim_status(claim_id, "PROCESSING", self.db_step)
         except Exception as db_err:
-            logfire.warning("pipeline.db_status_update_failed", claim_id=claim_id, step_name=self.step_name, error=str(db_err))
+            logfire.warning(
+                "pipeline.db_status_update_failed",
+                claim_id=claim_id,
+                step_name=self.step_name,
+                error=str(db_err),
+            )
 
         start_time = time.time()
         try:
             result = self.func(state)
-            logfire.info("pipeline.step.completed", claim_id=claim_id, step_name=self.step_name, duration_ms=int((time.time() - start_time) * 1000))
+            logfire.info(
+                "pipeline.step.completed",
+                claim_id=claim_id,
+                step_name=self.step_name,
+                duration_ms=int((time.time() - start_time) * 1000),
+            )
             return result
         except Exception as e:
-            logfire.error("pipeline.step.failed", claim_id=claim_id, step_name=self.step_name, duration_ms=int((time.time() - start_time) * 1000), error=str(e), _exc_info=True)
+            logfire.error(
+                "pipeline.step.failed",
+                claim_id=claim_id,
+                step_name=self.step_name,
+                duration_ms=int((time.time() - start_time) * 1000),
+                error=str(e),
+                _exc_info=True,
+            )
 
             if self.is_critical:
                 raise
@@ -107,7 +124,6 @@ class PipelineNode:
             default["degraded_steps"] = degraded
             default["confidence_score"] = state.get("confidence_score", 0.95) - 0.15
             return default
-
 
 
 def persist_result_node(state: ClaimState) -> dict:
@@ -122,14 +138,21 @@ def persist_result_node(state: ClaimState) -> dict:
             claim_id=state["claim_id"],
             decision=final.get("decision", "MANUAL_REVIEW"),
             approved_amount=final.get("approved_amount"),
-            confidence_score=final.get("confidence_score", state.get("confidence_score", 0.5)),
+            confidence_score=final.get(
+                "confidence_score", state.get("confidence_score", 0.5)
+            ),
             rejection_reasons=final.get("rejection_reasons", []),
             fraud_score=fraud.get("fraud_score") if fraud else None,
             fraud_signals=fraud.get("signals", []) if fraud else [],
             trace_json=trace_json,
         )
     except Exception as e:
-        logfire.error("pipeline.persist_result.failed", claim_id=state["claim_id"], error=str(e), _exc_info=True)
+        logfire.error(
+            "pipeline.persist_result.failed",
+            claim_id=state["claim_id"],
+            error=str(e),
+            _exc_info=True,
+        )
         # Non-fatal — result is already in state
 
     return {"current_step": "PERSIST_RESULT"}
@@ -147,7 +170,12 @@ def persist_early_stop_node(state: ClaimState) -> dict:
             trace_json=trace_json,
         )
     except Exception as e:
-        logfire.error("pipeline.persist_early_stop.failed", claim_id=state["claim_id"], error=str(e), _exc_info=True)
+        logfire.error(
+            "pipeline.persist_early_stop.failed",
+            claim_id=state["claim_id"],
+            error=str(e),
+            _exc_info=True,
+        )
 
     return {"current_step": "PERSIST_EARLY_STOP"}
 
@@ -166,59 +194,75 @@ def _build_trace(state: ClaimState) -> dict:
 
     # Add verification step
     if state.get("doc_verification"):
-        trace["steps"].append({
-            "step_name": "DOCUMENT_VERIFICATION",
-            "step_order": 1,
-            "status": "COMPLETED",
-            "summary": "Document verification completed",
-            "details": state["doc_verification"],
-        })
+        trace["steps"].append(
+            {
+                "step_name": "DOCUMENT_VERIFICATION",
+                "step_order": 1,
+                "status": "COMPLETED",
+                "summary": "Document verification completed",
+                "details": state["doc_verification"],
+            }
+        )
 
     # Add extraction step
     if state.get("extracted_data"):
-        trace["steps"].append({
-            "step_name": "DOCUMENT_EXTRACTION",
-            "step_order": 2,
-            "status": "COMPLETED",
-            "summary": "Data extraction completed",
-        })
+        trace["steps"].append(
+            {
+                "step_name": "DOCUMENT_EXTRACTION",
+                "step_order": 2,
+                "status": "COMPLETED",
+                "summary": "Data extraction completed",
+            }
+        )
 
     # Add policy step
     if state.get("policy_evaluation"):
-        trace["steps"].append({
-            "step_name": "POLICY_ENGINE",
-            "step_order": 3,
-            "status": "COMPLETED",
-            "summary": "Policy evaluation completed",
-            "details": state["policy_evaluation"],
-        })
+        trace["steps"].append(
+            {
+                "step_name": "POLICY_ENGINE",
+                "step_order": 3,
+                "status": "COMPLETED",
+                "summary": "Policy evaluation completed",
+                "details": state["policy_evaluation"],
+            }
+        )
 
     # Add fraud step
     if state.get("fraud_evaluation"):
-        trace["steps"].append({
-            "step_name": "FRAUD_DETECTION",
-            "step_order": 4,
-            "status": "COMPLETED" if "fraud_detection" not in state.get("degraded_steps", []) else "DEGRADED",
-            "summary": "Fraud detection completed",
-            "details": state["fraud_evaluation"],
-        })
+        trace["steps"].append(
+            {
+                "step_name": "FRAUD_DETECTION",
+                "step_order": 4,
+                "status": (
+                    "COMPLETED"
+                    if "fraud_detection" not in state.get("degraded_steps", [])
+                    else "DEGRADED"
+                ),
+                "summary": "Fraud detection completed",
+                "details": state["fraud_evaluation"],
+            }
+        )
     elif "fraud_detection" in state.get("degraded_steps", []):
-        trace["steps"].append({
-            "step_name": "FRAUD_DETECTION",
-            "step_order": 4,
-            "status": "DEGRADED",
-            "summary": "Fraud detection skipped due to component failure",
-        })
+        trace["steps"].append(
+            {
+                "step_name": "FRAUD_DETECTION",
+                "step_order": 4,
+                "status": "DEGRADED",
+                "summary": "Fraud detection skipped due to component failure",
+            }
+        )
 
     # Add final decision
     if state.get("final_decision"):
-        trace["steps"].append({
-            "step_name": "FINAL_DECISION",
-            "step_order": 5,
-            "status": "COMPLETED",
-            "summary": "Final decision rendered",
-            "details": state["final_decision"],
-        })
+        trace["steps"].append(
+            {
+                "step_name": "FINAL_DECISION",
+                "step_order": 5,
+                "status": "COMPLETED",
+                "summary": "Final decision rendered",
+                "details": state["final_decision"],
+            }
+        )
         trace["final_decision"] = state["final_decision"]
 
     return trace
@@ -246,11 +290,25 @@ def build_pipeline() -> StateGraph:
     graph = StateGraph(ClaimState)
 
     # Add nodes with error wrapping
-    graph.add_node("doc_verify",     PipelineNode(run_doc_verification, "doc_verify",     is_critical=True))
-    graph.add_node("doc_extract",    PipelineNode(run_doc_extraction,   "doc_extract",    is_critical=False))
-    graph.add_node("policy_engine",  PipelineNode(run_policy_engine,    "policy_engine",  is_critical=False))
-    graph.add_node("fraud_detection",PipelineNode(run_fraud_detection,  "fraud_detection",is_critical=False))
-    graph.add_node("final_decision", PipelineNode(run_final_decision,   "final_decision", is_critical=False))
+    graph.add_node(
+        "doc_verify", PipelineNode(run_doc_verification, "doc_verify", is_critical=True)
+    )
+    graph.add_node(
+        "doc_extract",
+        PipelineNode(run_doc_extraction, "doc_extract", is_critical=False),
+    )
+    graph.add_node(
+        "policy_engine",
+        PipelineNode(run_policy_engine, "policy_engine", is_critical=False),
+    )
+    graph.add_node(
+        "fraud_detection",
+        PipelineNode(run_fraud_detection, "fraud_detection", is_critical=False),
+    )
+    graph.add_node(
+        "final_decision",
+        PipelineNode(run_final_decision, "final_decision", is_critical=False),
+    )
     graph.add_node("persist_result", persist_result_node)
     graph.add_node("persist_early_stop", persist_early_stop_node)
 
@@ -289,6 +347,5 @@ def get_pipeline():
         graph_png = _pipeline.get_graph().draw_mermaid_png()
         with open("graph.png", "wb") as f:
             f.write(graph_png)
-
 
     return _pipeline
