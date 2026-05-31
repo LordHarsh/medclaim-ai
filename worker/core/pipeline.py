@@ -344,8 +344,4 @@ def get_pipeline():
     global _pipeline
     if _pipeline is None:
         _pipeline = build_pipeline()
-        graph_png = _pipeline.get_graph().draw_mermaid_png()
-        with open("graph.png", "wb") as f:
-            f.write(graph_png)
-
     return _pipeline
