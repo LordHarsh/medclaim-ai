@@ -205,14 +205,16 @@ def persist_early_stop(
     message: str,
     trace_json: dict,
 ) -> None:
-    """Write early stop result (NEEDS_REUPLOAD)."""
+    """Write early stop as COMPLETED + REJECTED with document verification failure reason."""
     now = datetime.now(timezone.utc)
     with Session() as session:
         session.execute(
             update(Claim)
             .where(Claim.claim_id == uuid.UUID(claim_id))
             .values(
-                status="NEEDS_REUPLOAD",
+                status="COMPLETED",
+                decision="REJECTED",
+                rejection_reasons=[reason],
                 error_message=message,
                 trace_json=trace_json,
                 completed_at=now,
