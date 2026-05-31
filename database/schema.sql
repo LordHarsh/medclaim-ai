@@ -73,7 +73,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_claims_sqs_idempotent ON claims(sqs_messag
 -- ============================================================
 CREATE TABLE IF NOT EXISTS claim_documents (
     doc_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    claim_id          UUID NOT NULL REFERENCES claims(claim_id),
+    claim_id          UUID NOT NULL REFERENCES claims(claim_id) ON DELETE CASCADE,
     s3_key            VARCHAR(512) NOT NULL,
     original_name     VARCHAR(256) NOT NULL,
     content_type      VARCHAR(100) NOT NULL,
@@ -98,7 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_docs_claim ON claim_documents(claim_id);
 CREATE TABLE IF NOT EXISTS claim_history (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     member_id         VARCHAR(20) NOT NULL,
-    claim_id          UUID NOT NULL REFERENCES claims(claim_id),
+    claim_id          UUID NOT NULL REFERENCES claims(claim_id) ON DELETE CASCADE,
     claim_date        DATE NOT NULL,
     amount            NUMERIC(10,2) NOT NULL,
     provider          VARCHAR(256),
