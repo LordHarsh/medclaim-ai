@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getAllClaims, getDashboardStats } from "./actions";
 import OpsDashboardClient from "./client";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Operations Dashboard - MedClaim AI",
   description: "Operations team dashboard for reviewing claim decisions, pipeline traces, and system output.",
