@@ -50,11 +50,22 @@ Treatment (if available): "{treatment}"
 Waiting period conditions:
 {conditions_text}
 
-Does the diagnosis match any of these conditions? Be precise:
+Does the diagnosis match any of these conditions? Be VERY precise and conservative:
 - "Viral Fever" does NOT match diabetes
 - "Type 2 Diabetes Mellitus" DOES match diabetes
 - "Knee Pain" does NOT match joint_replacement (it's not a replacement surgery)
 - "Chronic Joint Pain" does NOT match joint_replacement
+- "Lumbar Disc Herniation" does NOT match joint_replacement (it's a spinal condition, not a joint replacement)
+- "Suspected Lumbar Disc Herniation" does NOT match any condition (it's a diagnostic investigation)
+- "Acute Bronchitis" does NOT match any condition
+- "Gastroenteritis" does NOT match any condition
+- "Migraine" does NOT match any condition
+- "Morbid Obesity" does NOT match obesity_treatment for waiting period purposes (obesity is handled as an EXCLUSION, not a waiting period condition)
+- "Bariatric Consultation" does NOT match obesity_treatment waiting period (it's an excluded procedure)
+
+IMPORTANT: Only match when the diagnosis EXPLICITLY names the condition (diabetes, hypertension, thyroid, etc).
+Orthopedic, spinal, and surgical conditions should NOT match unless they are literally about joint REPLACEMENT surgery.
+Obesity/bariatric should NOT match the waiting period — these are handled separately as policy exclusions.
 
 Return your classification as structured output."""
 
