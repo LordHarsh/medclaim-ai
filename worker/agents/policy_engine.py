@@ -224,13 +224,16 @@ def run_policy_engine(state: ClaimState) -> dict:
             continue
 
         evaluator = evaluator_cls()
-        result = evaluator.evaluate(ctx)
+        with logfire.span("evaluator.{rule_id}", rule_id=rule.id, rule_type=rule.type, blocking=rule.blocking):
+            result = evaluator.evaluate(ctx)
+            logfire.info("evaluator.result", rule_id=rule.id, passed=result.passed, details=result.details)
+
         rule_evaluations.append(result)
 
         if not result.passed and rule.blocking:
-            # Map rule_name to rejection reason
             rejection_reason = _get_rejection_reason(result.rule_name)
             rejection_reasons.append(rejection_reason)
+            logfire.info("evaluator.short_circuit", rule_id=rule.id, rejection_reason=rejection_reason)
             return _build_rejected_output(
                 rule_evaluations, rejection_reasons, warnings,
                 line_item_decisions=(
