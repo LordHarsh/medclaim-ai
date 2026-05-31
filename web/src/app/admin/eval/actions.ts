@@ -49,23 +49,19 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
 
   const { input, documents } = testCase;
 
-  // Use today's date so submission_deadline (30-day rule) always passes.
-  // Exception: TC005 needs a treatment_date within 90 days of EMP005's join_date
-  // (2024-09-01) to trigger the diabetes waiting period. We simulate this by
-  // setting a date 45 days after the member's effective join date (within waiting period).
-  const today = new Date().toISOString().split("T")[0];
+  // Use EXACT treatment dates from test_cases.json — no overrides.
+  // Lambda uses freezegun to freeze time so submission_deadline passes naturally.
+  // eval_freeze_date = treatment_date + 1 day (simulates submitting the day after treatment)
+  const treatmentDate = input.treatment_date;
+  const freezeDate = new Date(treatmentDate);
+  freezeDate.setDate(freezeDate.getDate() + 1);
+  const evalFreezeDate = freezeDate.toISOString().split("T")[0];
 
-  // For TC005: compute a date 45 days after member's join_date (within 90-day waiting period)
-  let effectiveTreatmentDate = today;
-  if (caseId === "TC005") {
-    const joinDate = new Date("2024-09-01");
-    const withinWaiting = new Date(joinDate);
-    withinWaiting.setDate(withinWaiting.getDate() + 44); // 44 days = within 90-day window
-    effectiveTreatmentDate = withinWaiting.toISOString().split("T")[0];
-  }
+  // For TC009 fraud history, use the treatment_date (not today)
+  const today = treatmentDate;
 
-  // Build metadata — used for test flags like simulate_component_failure (TC011)
-  const metadata: Record<string, unknown> = {};
+  // Build metadata — eval_freeze_date tells Lambda to freeze time during processing
+  const metadata: Record<string, unknown> = { eval_freeze_date: evalFreezeDate };
   if (input.simulate_component_failure) {
     metadata.simulate_component_failure = true;
   }
@@ -80,7 +76,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
       input.policy_id,
       input.claim_category,
       input.claimed_amount,
-      effectiveTreatmentDate,
+      treatmentDate,
       input.hospital_name || null,
       JSON.stringify(metadata),
     ]

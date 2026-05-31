@@ -99,6 +99,7 @@ def process_claim(claim_id: str):
     ytd_approved = fetch_ytd_approved_total(claim.member_id, policy_start)
 
     simulate_failure = bool((claim.claim_metadata or {}).get("simulate_component_failure", False))
+    eval_freeze_date = (claim.claim_metadata or {}).get("eval_freeze_date")
 
     # Build initial state
     initial_state: ClaimState = {
@@ -139,11 +140,17 @@ def process_claim(claim_id: str):
         "simulate_component_failure": simulate_failure,
     }
 
-    # Run pipeline
+    # Run pipeline — freeze time for eval test cases so date-dependent rules work correctly
     pipeline = get_pipeline()
     try:
-        with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
-            result = pipeline.invoke(initial_state)
+        if eval_freeze_date:
+            from freezegun import freeze_time
+            with freeze_time(eval_freeze_date):
+                with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"], eval_mode=True, frozen_date=eval_freeze_date):
+                    result = pipeline.invoke(initial_state)
+        else:
+            with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
+                result = pipeline.invoke(initial_state)
     except Exception as e:
         logfire.error("claim.process.pipeline_error", claim_id=claim_id, error=str(e), _exc_info=True)
         update_claim_status(claim_id, "FAILED")
