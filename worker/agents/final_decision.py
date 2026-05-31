@@ -15,9 +15,12 @@ Generate two messages:
 1. user_message: A friendly, clear message for the insurance member explaining the decision.
    - Use Rs. for amounts
    - Be specific about reasons
-   - If approved, state the amount clearly
+   - If approved, state the approved amount only
    - If rejected, explain why and what they can do
    - Keep it under 3 sentences
+   - NEVER mention payment processing, timelines, bank credits, or reimbursement schedules
+   - NEVER promise when or how money will be paid — that is outside this system's scope
+   - Only state the decision and the amount — nothing about what happens next financially
 
 2. ops_summary: A concise technical summary for the operations team.
    - Include key metrics and reasons

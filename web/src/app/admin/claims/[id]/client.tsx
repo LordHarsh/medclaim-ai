@@ -13,6 +13,37 @@ interface ParsedStep {
   error?: string;
 }
 
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+function humanize(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bAnd\b/g, "and");
+}
+
+function formatAmount(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.round((ms % 60000) / 1000);
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
+function extractFilename(s3Key: string): string {
+  const parts = s3Key.split("/");
+  return parts[parts.length - 1] || s3Key;
+}
+
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
 export function ClaimDetailClient({ claim }: { claim: DashboardClaim }) {
@@ -20,8 +51,17 @@ export function ClaimDetailClient({ claim }: { claim: DashboardClaim }) {
   const trace = claim.trace_json;
   const steps = parseSteps(trace);
 
+  // Extract documents from DOCUMENT_VERIFICATION step for the documents section
+  const docVerifyStep = steps.find((s) => s.step_name === "DOCUMENT_VERIFICATION");
+  const documents = docVerifyStep?.details?.documents as Array<Record<string, unknown>> | undefined;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
+      {/* Uploaded Documents Section */}
+      {documents && documents.length > 0 && (
+        <DocumentsSection documents={documents} />
+      )}
+
       {/* Pipeline Trace heading */}
       <div>
         <h2 className="text-[18px] font-light tracking-[-0.18px] text-[var(--ink)]" style={{ fontFeatureSettings: '"ss01"' }}>
@@ -65,6 +105,64 @@ export function ClaimDetailClient({ claim }: { claim: DashboardClaim }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Documents Section ──────────────────────────────────────────────────────
+
+function DocumentsSection({ documents }: { documents: Array<Record<string, unknown>> }) {
+  return (
+    <div>
+      <h2 className="text-[18px] font-light tracking-[-0.18px] text-[var(--ink)] mb-3" style={{ fontFeatureSettings: '"ss01"' }}>
+        Uploaded Documents
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {documents.map((doc, i) => {
+          const s3Key = (doc.s3_key || doc.key || "") as string;
+          const filename = s3Key ? extractFilename(s3Key) : `Document ${i + 1}`;
+          const detectedType = humanize((doc.detected_type || doc.type || "Unknown") as string);
+          const qualityScore = doc.quality_score !== undefined ? Number(doc.quality_score) : null;
+          const patientName = (doc.patient_name_found || doc.patient_name) as string | undefined;
+          const isReadable = doc.is_readable as boolean | undefined;
+
+          return (
+            <div
+              key={i}
+              className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[10px] px-4 py-3 shadow-[rgba(0,55,112,0.04)_0_1px_2px]"
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-[13px] font-mono text-[var(--ink)] truncate" title={filename}>
+                  {filename}
+                </p>
+                {isReadable !== undefined && (
+                  <span className={`shrink-0 text-[10px] uppercase tracking-[0.3px] px-1.5 py-0.5 rounded-[4px] ${isReadable ? "bg-[rgba(5,150,105,0.08)] text-[#059669]" : "bg-[rgba(234,34,97,0.08)] text-[var(--ruby)]"}`}>
+                    {isReadable ? "Readable" : "Not Readable"}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="text-[var(--ink-mute)]">Type:</span>
+                  <span className="text-[var(--ink)]">{detectedType}</span>
+                </div>
+                {qualityScore !== null && (
+                  <div className="flex items-center gap-2 text-[12px]">
+                    <span className="text-[var(--ink-mute)]">Quality:</span>
+                    <QualityBar score={qualityScore} />
+                  </div>
+                )}
+                {patientName && (
+                  <div className="flex items-center gap-2 text-[12px]">
+                    <span className="text-[var(--ink-mute)]">Patient:</span>
+                    <span className="text-[var(--ink)] font-mono">{patientName}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -188,7 +286,7 @@ function DocumentVerificationDetails({ details }: { details: Record<string, unkn
             {documents.map((doc, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-[6px] bg-[var(--canvas-soft)] border border-[var(--hairline)]">
                 <span className="text-[12px] font-mono text-[var(--ink)] min-w-[120px]">
-                  {(doc.detected_type || doc.type || "UNKNOWN") as string}
+                  {humanize((doc.detected_type || doc.type || "UNKNOWN") as string)}
                 </span>
                 {(doc.quality_score !== undefined) && (
                   <QualityBar score={Number(doc.quality_score)} />
@@ -216,7 +314,7 @@ function DocumentVerificationDetails({ details }: { details: Record<string, unkn
           <div className="mt-1 flex flex-wrap gap-1.5">
             {typesDetected.map((t, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[var(--canvas-soft)] border border-[var(--hairline)] text-[11px] font-mono text-[var(--ink)]">
-                {t}
+                {humanize(t)}
                 {qualityScores && qualityScores[t] !== undefined && (
                   <span className="text-[var(--ink-mute)]">({qualityScores[t].toFixed(2)})</span>
                 )}
@@ -233,7 +331,7 @@ function DocumentVerificationDetails({ details }: { details: Record<string, unkn
           <div className="mt-1 flex flex-wrap gap-1.5">
             {missingTypes.map((t, i) => (
               <span key={i} className="inline-flex px-2 py-0.5 rounded-[4px] bg-[rgba(234,34,97,0.06)] border border-[rgba(234,34,97,0.15)] text-[11px] font-mono text-[var(--ruby)]">
-                {t}
+                {humanize(t)}
               </span>
             ))}
           </div>
@@ -378,6 +476,16 @@ function PolicyEngineDetails({ details }: { details: Record<string, unknown> }) 
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Rejection reasons - show prominently at top if REJECTED */}
+      {rejectionReasons && rejectionReasons.length > 0 && (
+        <div className="px-4 py-3 rounded-[8px] bg-[rgba(234,34,97,0.06)] border border-[rgba(234,34,97,0.2)]">
+          <p className="text-[12px] font-medium uppercase tracking-[0.3px] text-[var(--ruby)] mb-2">Claim Rejected</p>
+          <ul className="list-disc list-inside text-[13px] text-[var(--ruby)] space-y-1">
+            {rejectionReasons.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Rule evaluations table */}
       {ruleEvaluations && ruleEvaluations.length > 0 && (
         <div>
@@ -400,7 +508,13 @@ function PolicyEngineDetails({ details }: { details: Record<string, unknown> }) 
                     <tr
                       key={i}
                       className="border-b border-[var(--hairline)] last:border-b-0"
-                      style={{ backgroundColor: passed ? undefined : "rgba(234,34,97,0.03)" }}
+                      style={{
+                        backgroundColor: !passed
+                          ? "rgba(234,34,97,0.05)"
+                          : i % 2 === 0
+                            ? undefined
+                            : "rgba(100,116,141,0.03)",
+                      }}
                     >
                       <td className="px-3 py-1.5 text-center">
                         {passed
@@ -422,39 +536,32 @@ function PolicyEngineDetails({ details }: { details: Record<string, unknown> }) 
         </div>
       )}
 
-      {/* Rejection reasons */}
-      {rejectionReasons && rejectionReasons.length > 0 && (
-        <div className="px-3 py-2 rounded-[6px] bg-[rgba(234,34,97,0.04)] border border-[rgba(234,34,97,0.15)]">
-          <p className="text-[11px] uppercase tracking-[0.3px] text-[var(--ruby)] mb-1">Blocking Rules Triggered</p>
-          <ul className="list-disc list-inside text-[12px] text-[var(--ruby)] space-y-0.5">
-            {rejectionReasons.map((r, i) => <li key={i}>{r}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {/* Calculation breakdown */}
+      {/* Calculation breakdown - waterfall */}
       {breakdown && (
         <div>
           <SectionLabel>Calculation Breakdown</SectionLabel>
-          <div className="mt-1.5 flex flex-col gap-1">
-            <WaterfallRow label="Original Amount" value={breakdown.original_amount as number | undefined} />
-            <WaterfallRow label="Eligible Amount" value={breakdown.eligible_amount as number | undefined} />
-            {breakdown.network_discount_percent !== undefined && (
-              <WaterfallRow
-                label={`Network Discount (${breakdown.network_discount_percent}%)`}
-                value={breakdown.after_network_discount as number | undefined}
-                deduction
-              />
-            )}
-            {breakdown.copay_percent !== undefined && (
-              <WaterfallRow
-                label={`Co-pay (${breakdown.copay_percent}%)`}
-                value={breakdown.after_copay as number | undefined}
-                deduction
-                subtitle={breakdown.copay_amount !== undefined ? `Deducted: ${formatAmount(Number(breakdown.copay_amount))}` : undefined}
-              />
-            )}
-            <WaterfallRow label="Final Approved" value={breakdown.final_approved_amount as number | undefined} highlight />
+          <div className="mt-1.5 border border-[var(--hairline)] rounded-[8px] overflow-hidden">
+            <div className="flex flex-col divide-y divide-[var(--hairline)]">
+              <WaterfallRow label="Original Amount" value={breakdown.original_amount as number | undefined} isFirst />
+              <WaterfallRow label="Eligible Amount" value={breakdown.eligible_amount as number | undefined} />
+              {breakdown.network_discount_percent !== undefined && (
+                <WaterfallRow
+                  label={`Network Discount (${breakdown.network_discount_percent}%)`}
+                  value={breakdown.after_network_discount as number | undefined}
+                  deduction
+                  subtitle={`-${formatAmount(Number((breakdown.original_amount as number || 0) - (breakdown.after_network_discount as number || 0)))}`}
+                />
+              )}
+              {breakdown.copay_percent !== undefined && (
+                <WaterfallRow
+                  label={`Co-pay (${breakdown.copay_percent}%)`}
+                  value={breakdown.after_copay as number | undefined}
+                  deduction
+                  subtitle={breakdown.copay_amount !== undefined ? `-${formatAmount(Number(breakdown.copay_amount))}` : undefined}
+                />
+              )}
+              <WaterfallRow label="Final Approved" value={breakdown.final_approved_amount as number | undefined} highlight isLast />
+            </div>
           </div>
         </div>
       )}
@@ -527,6 +634,19 @@ function FraudDetectionDetails({ details }: { details: Record<string, unknown> }
     : riskLevel === "HIGH" ? "var(--ruby)"
     : "var(--ink-mute)";
 
+  // Compact "no fraud" display when score is 0 and no signals
+  const noSignals = !allSignals || allSignals.length === 0;
+  const isClean = fraudScore !== undefined && fraudScore === 0 && noSignals;
+
+  if (isClean) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[rgba(5,150,105,0.04)] border border-[rgba(5,150,105,0.15)]">
+        <span className="text-[#059669] text-[14px]">&#10003;</span>
+        <p className="text-[13px] text-[#059669] font-normal">No fraud indicators detected</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Score + Risk level */}
@@ -552,44 +672,46 @@ function FraudDetectionDetails({ details }: { details: Record<string, unknown> }
         )}
       </div>
 
-      {/* Signals table */}
-      {allSignals && allSignals.length > 0 ? (
+      {/* Signals as cards */}
+      {allSignals && allSignals.length > 0 && (
         <div>
           <SectionLabel>Triggered Signals</SectionLabel>
-          <div className="mt-1.5 border border-[var(--hairline)] rounded-[6px] overflow-hidden">
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="bg-[var(--canvas-soft)] border-b border-[var(--hairline)]">
-                  <th className="text-left px-3 py-1.5 font-normal text-[var(--ink-mute)] uppercase tracking-[0.3px]">Signal</th>
-                  <th className="text-center px-3 py-1.5 font-normal text-[var(--ink-mute)] uppercase tracking-[0.3px]">Severity</th>
-                  <th className="text-center px-3 py-1.5 font-normal text-[var(--ink-mute)] uppercase tracking-[0.3px]">Weight</th>
-                  <th className="text-left px-3 py-1.5 font-normal text-[var(--ink-mute)] uppercase tracking-[0.3px]">Description</th>
-                  <th className="text-left px-3 py-1.5 font-normal text-[var(--ink-mute)] uppercase tracking-[0.3px]">Evidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allSignals.map((signal, i) => {
-                  const severity = (signal.severity as string) || "UNKNOWN";
-                  const sevColor = severity === "HIGH" ? "var(--ruby)" : severity === "MEDIUM" ? "#d97706" : "#059669";
-                  return (
-                    <tr key={i} className="border-b border-[var(--hairline)] last:border-b-0">
-                      <td className="px-3 py-1.5 font-mono text-[var(--ink)]">{(signal.signal_type || signal.type || signal.name || "--") as string}</td>
-                      <td className="px-3 py-1.5 text-center">
-                        <span className="text-[10px] uppercase" style={{ color: sevColor }}>{severity}</span>
-                      </td>
-                      <td className="px-3 py-1.5 text-center font-mono tabular-nums text-[var(--ink)]">{signal.weight !== undefined ? String(signal.weight) : "--"}</td>
-                      <td className="px-3 py-1.5 text-[var(--ink-secondary)]">{(signal.description || signal.message || "--") as string}</td>
-                      <td className="px-3 py-1.5 text-[var(--ink-mute)] font-mono text-[10px]">{(signal.evidence || "--") as string}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {allSignals.map((signal, i) => {
+              const severity = (signal.severity as string) || "UNKNOWN";
+              const sevColor = severity === "HIGH" ? "var(--ruby)" : severity === "MEDIUM" ? "#d97706" : "#059669";
+              const sevBg = severity === "HIGH" ? "rgba(234,34,97,0.06)" : severity === "MEDIUM" ? "rgba(217,119,6,0.06)" : "rgba(5,150,105,0.06)";
+              const sevBorder = severity === "HIGH" ? "rgba(234,34,97,0.2)" : severity === "MEDIUM" ? "rgba(217,119,6,0.2)" : "rgba(5,150,105,0.2)";
+
+              return (
+                <div
+                  key={i}
+                  className="px-3 py-2.5 rounded-[8px] border"
+                  style={{ backgroundColor: sevBg, borderColor: sevBorder }}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-mono text-[var(--ink)]">
+                      {humanize((signal.signal_type || signal.type || signal.name || "Unknown") as string)}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <SeverityBar severity={severity} />
+                      <span className="text-[10px] uppercase tracking-[0.3px]" style={{ color: sevColor }}>{severity}</span>
+                    </div>
+                  </div>
+                  {(signal.description || signal.message) && (
+                    <p className="text-[11px] text-[var(--ink-secondary)] leading-[1.4]">
+                      {(signal.description || signal.message) as string}
+                    </p>
+                  )}
+                  {signal.weight !== undefined && (
+                    <p className="text-[10px] text-[var(--ink-mute)] mt-1 font-mono">
+                      Weight: {String(signal.weight)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
-      ) : (
-        <div className="px-3 py-2 rounded-[6px] bg-[rgba(5,150,105,0.04)] border border-[rgba(5,150,105,0.15)]">
-          <p className="text-[12px] text-[#059669]">No fraud signals detected</p>
         </div>
       )}
 
@@ -657,34 +779,36 @@ function FinalDecisionDetails({ details }: { details: Record<string, unknown> })
       {confidenceDeductions && confidenceDeductions.length > 0 && (
         <div>
           <SectionLabel>Confidence Deductions</SectionLabel>
-          <div className="mt-1.5 flex flex-col gap-1">
+          <div className="mt-1.5 border border-[var(--hairline)] rounded-[6px] overflow-hidden divide-y divide-[var(--hairline)]">
             {confidenceDeductions.map((ded, i) => (
-              <div key={i} className="flex items-center gap-2 text-[12px]">
-                <span className="text-[var(--ruby)] font-mono tabular-nums">-{(ded.amount || ded.deduction || 0) as number}</span>
-                <span className="text-[var(--ink-secondary)]">{(ded.reason || ded.description || "Unknown") as string}</span>
+              <div key={i} className="flex items-center justify-between px-3 py-2">
+                <span className="text-[12px] text-[var(--ink-secondary)]">{(ded.reason || ded.description || "Unknown") as string}</span>
+                <span className="text-[12px] font-mono tabular-nums text-[var(--ruby)] font-medium">
+                  -{(ded.amount || ded.deduction || 0) as number}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* User message */}
+      {/* User message - styled as a quote block */}
       {userMessage && (
         <div>
           <SectionLabel>User Message</SectionLabel>
-          <p className="mt-1 text-[12px] text-[var(--ink-secondary)] leading-[1.5] bg-[var(--canvas-soft)] rounded-[6px] px-3 py-2 border border-[var(--hairline)]">
+          <blockquote className="mt-1.5 text-[13px] text-[var(--ink)] leading-[1.6] bg-[var(--canvas-soft)] rounded-[8px] px-4 py-3 border-l-[3px] border-l-[var(--primary-indigo)] border border-[var(--hairline)] italic">
             {userMessage}
-          </p>
+          </blockquote>
         </div>
       )}
 
-      {/* Ops summary */}
+      {/* Ops summary - technical style */}
       {opsSummary && (
         <div>
           <SectionLabel>Ops Summary</SectionLabel>
-          <p className="mt-1 text-[12px] text-[var(--ink-secondary)] leading-[1.5]">
+          <div className="mt-1.5 text-[12px] font-mono text-[var(--ink-secondary)] leading-[1.6] bg-[var(--canvas)] rounded-[6px] px-3 py-2 border border-[var(--hairline)]">
             {opsSummary}
-          </p>
+          </div>
         </div>
       )}
 
@@ -787,21 +911,56 @@ function QualityBar({ score }: { score: number }) {
   );
 }
 
-function WaterfallRow({ label, value, deduction, highlight, subtitle }: {
+function SeverityBar({ severity }: { severity: string }) {
+  const level = severity === "HIGH" ? 3 : severity === "MEDIUM" ? 2 : 1;
+  const color = severity === "HIGH" ? "var(--ruby)" : severity === "MEDIUM" ? "#d97706" : "#059669";
+  return (
+    <div className="flex items-center gap-[2px]">
+      {[1, 2, 3].map((n) => (
+        <div
+          key={n}
+          className="w-[3px] rounded-[1px]"
+          style={{
+            height: `${6 + n * 3}px`,
+            backgroundColor: n <= level ? color : "var(--hairline)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function WaterfallRow({ label, value, deduction, highlight, subtitle, isFirst, isLast }: {
   label: string;
   value: number | undefined;
   deduction?: boolean;
   highlight?: boolean;
   subtitle?: string;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   if (value === undefined) return null;
   return (
-    <div className={`flex items-center justify-between px-3 py-1.5 rounded-[4px] ${highlight ? "bg-[rgba(5,150,105,0.04)] border border-[rgba(5,150,105,0.15)]" : ""}`}>
-      <div>
-        <span className={`text-[12px] ${highlight ? "text-[#059669] font-medium" : deduction ? "text-[var(--ink-secondary)]" : "text-[var(--ink)]"}`}>
-          {label}
-        </span>
-        {subtitle && <span className="text-[10px] text-[var(--ink-mute)] ml-2">{subtitle}</span>}
+    <div
+      className={`flex items-center justify-between px-4 py-2.5 ${highlight ? "bg-[rgba(5,150,105,0.05)]" : ""} ${isFirst ? "rounded-t-[7px]" : ""} ${isLast ? "rounded-b-[7px]" : ""}`}
+    >
+      <div className="flex items-center gap-2">
+        {deduction && (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--ink-mute)]">
+            <path d="M6 2L6 10M6 10L3 7M6 10L9 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {highlight && (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[#059669]">
+            <path d="M2 6H10M7 3L10 6L7 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        <div>
+          <span className={`text-[12px] ${highlight ? "text-[#059669] font-medium" : deduction ? "text-[var(--ink-secondary)]" : "text-[var(--ink)]"}`}>
+            {label}
+          </span>
+          {subtitle && <span className="text-[10px] text-[var(--ruby)] ml-2 font-mono">{subtitle}</span>}
+        </div>
       </div>
       <span className={`text-[12px] font-mono tabular-nums ${highlight ? "text-[#059669] font-medium" : deduction ? "text-[var(--ink-mute)]" : "text-[var(--ink)]"}`}>
         {formatAmount(value)}
@@ -810,7 +969,7 @@ function WaterfallRow({ label, value, deduction, highlight, subtitle }: {
   );
 }
 
-// ─── Utilities ───────────────────────────────────────────────────────────────
+// ─── Parse Utilities ────────────────────────────────────────────────────────
 
 function parseSteps(trace_json: Record<string, unknown> | null): ParsedStep[] {
   if (!trace_json) return [];
@@ -819,18 +978,4 @@ function parseSteps(trace_json: Record<string, unknown> | null): ParsedStep[] {
   } catch {
     return [];
   }
-}
-
-function formatAmount(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
 }

@@ -41,7 +41,7 @@ export default async function ClaimDetailPage({ params }: PageProps) {
       </header>
 
       {/* Content */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-6">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-4">
         {/* Error banner for NEEDS_REUPLOAD or FAILED */}
         {(claim.status === "NEEDS_REUPLOAD" || claim.status === "FAILED") && claim.error_message && (
           <ErrorBanner claim={claim} />
@@ -54,12 +54,74 @@ export default async function ClaimDetailPage({ params }: PageProps) {
   );
 }
 
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+function humanize(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\bAnd\b/g, "and");
+}
+
+function formatTreatmentDate(raw: string): string {
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function shortenUUID(uuid: string): string {
+  if (uuid.length < 12) return uuid;
+  return `${uuid.slice(0, 8)}...${uuid.slice(-5)}`;
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.round((ms % 60000) / 1000);
+  return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+}
+
+function formatAmount(amount: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 // ─── Header Section ──────────────────────────────────────────────────────────
 
 function HeaderSection({ claim }: { claim: NonNullable<Awaited<ReturnType<typeof getClaimById>>> }) {
   const processingTime = claim.completed_at
     ? new Date(claim.completed_at).getTime() - new Date(claim.created_at).getTime()
     : null;
+
+  const isCompleted = claim.status === "COMPLETED";
+
+  // Build metadata cells - skip hospital if null, adjust current step for completed claims
+  const metaCells: { label: string; value: string; mono?: boolean }[] = [
+    { label: "Member ID", value: claim.member_id, mono: true },
+    { label: "Category", value: humanize(claim.category) },
+    { label: "Treatment Date", value: formatTreatmentDate(claim.treatment_date), mono: true },
+  ];
+
+  if (claim.hospital_name) {
+    metaCells.push({ label: "Hospital", value: claim.hospital_name });
+  }
+
+  if (isCompleted) {
+    metaCells.push({ label: "Current Step", value: "Pipeline complete" });
+  } else {
+    metaCells.push({ label: "Current Step", value: humanize(claim.current_step) });
+  }
+
+  metaCells.push({
+    label: "Processing Time",
+    value: processingTime !== null ? formatDuration(processingTime) : "In progress",
+    mono: true,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,8 +131,15 @@ function HeaderSection({ claim }: { claim: NonNullable<Awaited<ReturnType<typeof
           <h1 className="text-[22px] font-light tracking-[-0.22px] text-[var(--ink)]" style={{ fontFeatureSettings: '"ss01"' }}>
             Claim Detail
           </h1>
-          <p className="text-[13px] font-mono text-[var(--ink-mute)] mt-0.5 tracking-[-0.26px] select-all">
-            {claim.claim_id}
+          <p className="text-[13px] font-mono text-[var(--ink-mute)] mt-0.5 tracking-[-0.26px]" title={claim.claim_id}>
+            {shortenUUID(claim.claim_id)}
+            <button
+              className="ml-2 text-[11px] text-[var(--ink-mute)] hover:text-[var(--ink)] px-1.5 py-0.5 rounded border border-[var(--hairline)] hover:border-[var(--ink-mute)] transition-colors"
+              title="Copy full claim ID"
+              data-copy={claim.claim_id}
+            >
+              Copy ID
+            </button>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -79,17 +148,14 @@ function HeaderSection({ claim }: { claim: NonNullable<Awaited<ReturnType<typeof
         </div>
       </div>
 
-      {/* Row 2: Metadata grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetaCell label="Member ID" value={claim.member_id} mono />
-        <MetaCell label="Category" value={claim.category} />
-        <MetaCell label="Treatment Date" value={claim.treatment_date} mono />
-        <MetaCell label="Hospital" value={claim.hospital_name || "N/A"} />
-        <MetaCell label="Current Step" value={claim.current_step.replace(/_/g, " ")} />
-        <MetaCell label="Processing Time" value={processingTime !== null ? formatDuration(processingTime) : "In progress"} mono />
+      {/* Row 2: Metadata grid (3 columns) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {metaCells.map((cell) => (
+          <MetaCell key={cell.label} label={cell.label} value={cell.value} mono={cell.mono} />
+        ))}
       </div>
 
-      {/* Row 3: Amount + Confidence */}
+      {/* Row 3: Amount + Confidence (side-by-side compact) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <AmountCard label="Claimed Amount" amount={claim.claimed_amount} />
         <AmountCard label="Approved Amount" amount={claim.approved_amount} highlight={claim.decision === "APPROVED"} />
@@ -110,7 +176,7 @@ function ErrorBanner({ claim }: { claim: NonNullable<Awaited<ReturnType<typeof g
 
   return (
     <div
-      className="mb-6 px-5 py-4 rounded-[10px] border"
+      className="mb-4 px-5 py-4 rounded-[10px] border"
       style={{ backgroundColor: bgColor, borderColor }}
     >
       <p className="text-[12px] font-normal uppercase tracking-[0.4px] mb-1.5" style={{ color: labelColor }}>
@@ -197,7 +263,7 @@ function AmountCard({ label, amount, highlight }: { label: string; amount: numbe
 function ConfidenceCard({ score }: { score: number | null }) {
   const pct = score !== null ? Math.round(score * 100) : 0;
   const barColor = score !== null
-    ? score >= 0.8 ? "#059669" : score >= 0.6 ? "#d97706" : "var(--ruby)"
+    ? score >= 0.85 ? "#059669" : score >= 0.6 ? "#d97706" : "var(--ruby)"
     : "var(--hairline)";
 
   return (
@@ -221,20 +287,4 @@ function ConfidenceCard({ score }: { score: number | null }) {
       </div>
     </div>
   );
-}
-
-// ─── Utilities ───────────────────────────────────────────────────────────────
-
-function formatAmount(amount: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
 }

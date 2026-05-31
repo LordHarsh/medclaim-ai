@@ -64,7 +64,7 @@ worker/pytest.ini
 vitest.config.ts
 
 # generated test document images (large, regenerate with: npm run generate-docs)
-resources/test_documents/
+resources/test_documents*
 
 .vercel
 .codex/
@@ -72,3 +72,4 @@ web/.next/
 
 .vercel
 .env*
+image.png
