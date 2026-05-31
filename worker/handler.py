@@ -140,17 +140,14 @@ def process_claim(claim_id: str):
         "simulate_component_failure": simulate_failure,
     }
 
-    # Run pipeline — freeze time for eval test cases so date-dependent rules work correctly
+    # For eval test cases, pass the frozen date through state so policy engine uses it instead of date.today()
+    if eval_freeze_date:
+        initial_state["eval_date_override"] = eval_freeze_date
+
     pipeline = get_pipeline()
     try:
-        if eval_freeze_date:
-            from freezegun import freeze_time
-            with freeze_time(eval_freeze_date):
-                with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"], eval_mode=True, frozen_date=eval_freeze_date):
-                    result = pipeline.invoke(initial_state)
-        else:
-            with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
-                result = pipeline.invoke(initial_state)
+        with logfire.span("pipeline.invoke", claim_id=claim_id, category=initial_state["category"]):
+            result = pipeline.invoke(initial_state)
     except Exception as e:
         logfire.error("claim.process.pipeline_error", claim_id=claim_id, error=str(e), _exc_info=True)
         update_claim_status(claim_id, "FAILED")

@@ -208,6 +208,7 @@ def run_policy_engine(state: ClaimState) -> dict:
         extracted_data=extracted_data,
         ytd_approved=ytd_approved,
         cat_config=cat_config,
+        eval_date_override=state.get("eval_date_override"),
     )
 
     # Get rules sorted by order — use defaults if evaluation_rules not in config

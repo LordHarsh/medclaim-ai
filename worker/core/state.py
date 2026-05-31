@@ -31,3 +31,4 @@ class ClaimState(TypedDict):
 
     # Metadata
     simulate_component_failure: bool
+    eval_date_override: Optional[str]

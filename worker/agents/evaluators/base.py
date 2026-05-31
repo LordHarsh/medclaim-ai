@@ -22,6 +22,7 @@ class EvaluationContext:
         extracted_data: dict,
         ytd_approved: float,
         cat_config: Optional[OpdCategory],
+        eval_date_override: Optional[str] = None,
     ):
         self.policy = policy
         self.member = member
@@ -32,6 +33,10 @@ class EvaluationContext:
         self.extracted_data = extracted_data
         self.ytd_approved = ytd_approved
         self.cat_config = cat_config
+
+        # For eval: use overridden date as "today" instead of actual date.today()
+        from datetime import datetime
+        self.today = datetime.strptime(eval_date_override, "%Y-%m-%d").date() if eval_date_override else date.today()
 
         # Shared mutable state: set by procedure_coverage, read by amount_calculation
         self.eligible_amount: float = claimed_amount
