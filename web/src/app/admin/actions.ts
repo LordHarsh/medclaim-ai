@@ -1,26 +1,15 @@
 "use server";
 
-import { auth } from "@/lib/auth/server";
 import { query } from "@/lib/db";
-import { sendClaimForProcessing } from "@/lib/sqs";
-import { TEST_CASES } from "./test-data";
 import type { ClaimRow } from "@/lib/types";
 
-async function requireAdmin() {
-  const { data: session } = await auth.getSession();
-  if (!session?.user) {
-    throw new Error("Unauthorized: sign in required");
-  }
-  return session;
-}
-
-export interface RunTestCaseResult {
+export interface DashboardClaim {
   claim_id: string;
-  case_id: string;
-}
-
-export interface TestCaseOutcome {
-  claim_id: string;
+  member_id: string;
+  category: string;
+  claimed_amount: number;
+  treatment_date: string;
+  hospital_name: string | null;
   status: string;
   decision: string | null;
   approved_amount: number | null;
@@ -30,174 +19,76 @@ export interface TestCaseOutcome {
   fraud_score: number | null;
   fraud_signals: unknown;
   trace_json: Record<string, unknown> | null;
-  current_step: string | null;
-  completed_at: string | null;
+  current_step: string;
   created_at: string;
+  completed_at: string | null;
 }
 
-/**
- * Run a single test case through the full pipeline.
- * Creates a claim in the DB with the test case's documents and sends it to SQS.
- */
-export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
-  await requireAdmin();
-
-  const testCase = TEST_CASES.find((tc) => tc.case_id === caseId);
-  if (!testCase) {
-    throw new Error(`Test case ${caseId} not found`);
-  }
-
-  const { input, documents } = testCase;
-
-  // Use today's date so submission_deadline (30-day rule) always passes.
-  // Exception: TC005 needs a treatment_date within 90 days of EMP005's join_date
-  // (2024-09-01) to trigger the diabetes waiting period. We simulate this by
-  // setting a date 45 days after the member's effective join date (within waiting period).
-  const today = new Date().toISOString().split("T")[0];
-
-  // For TC005: compute a date 45 days after member's join_date (within 90-day waiting period)
-  let effectiveTreatmentDate = today;
-  if (caseId === "TC005") {
-    const joinDate = new Date("2024-09-01");
-    const withinWaiting = new Date(joinDate);
-    withinWaiting.setDate(withinWaiting.getDate() + 44); // 44 days = within 90-day window
-    effectiveTreatmentDate = withinWaiting.toISOString().split("T")[0];
-  }
-
-  // Build metadata — used for test flags like simulate_component_failure (TC011)
-  const metadata: Record<string, unknown> = {};
-  if (input.simulate_component_failure) {
-    metadata.simulate_component_failure = true;
-  }
-
-  // 1. Insert the claim
-  const claimRows = await query(
-    `INSERT INTO claims (member_id, policy_id, category, claimed_amount, treatment_date, hospital_name, status, current_step, claim_metadata)
-     VALUES ($1, $2, $3, $4, $5, $6, 'QUEUED', 'SUBMITTED', $7)
-     RETURNING claim_id`,
-    [
-      input.member_id,
-      input.policy_id,
-      input.claim_category,
-      input.claimed_amount,
-      effectiveTreatmentDate,
-      input.hospital_name || null,
-      JSON.stringify(metadata),
-    ]
-  );
-
-  const claimId = claimRows[0].claim_id as string;
-
-  // 2. Insert claim documents with the pre-uploaded S3 keys
-  for (const doc of documents) {
-    const ext = doc.file_name.split(".").pop()?.toLowerCase();
-    const contentType =
-      ext === "pdf"
-        ? "application/pdf"
-        : ext === "png"
-          ? "image/png"
-          : ext === "webp"
-            ? "image/webp"
-            : "image/jpeg";
-
-    await query(
-      `INSERT INTO claim_documents (claim_id, s3_key, original_name, content_type, size_bytes)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [claimId, doc.s3_key, doc.file_name, contentType, 0]
-    );
-  }
-
-  // 3. For TC009: Insert prior claim history records
-  if (input.claims_history && input.claims_history.length > 0) {
-    for (const histEntry of input.claims_history) {
-      // Create a dummy completed claim for the history
-      const histClaimRows = await query(
-        `INSERT INTO claims (member_id, policy_id, category, claimed_amount, treatment_date, hospital_name, status, decision, current_step)
-         VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', 'APPROVED', 'DONE')
-         RETURNING claim_id`,
-        [
-          input.member_id,
-          input.policy_id,
-          input.claim_category,
-          histEntry.amount,
-          histEntry.date,
-          histEntry.provider,
-        ]
-      );
-      const histClaimId = histClaimRows[0].claim_id as string;
-
-      await query(
-        `INSERT INTO claim_history (member_id, claim_id, claim_date, amount, provider, category, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED')`,
-        [
-          input.member_id,
-          histClaimId,
-          today,           // use today so fraud signals trigger correctly
-          histEntry.amount,
-          histEntry.provider,
-          input.claim_category,
-        ]
-      );
-    }
-  }
-
-  // 4. Insert claim_history for the current claim
-  await query(
-    `INSERT INTO claim_history (member_id, claim_id, claim_date, amount, provider, category, status)
-     VALUES ($1, $2, $3, $4, $5, $6, 'QUEUED')`,
-    [
-      input.member_id,
-      claimId,
-      today,
-      input.claimed_amount,
-      input.hospital_name || null,
-      input.claim_category,
-    ]
-  );
-
-  // 5. Send to SQS for processing (Lambda claims the message_id via idempotency check)
-  await sendClaimForProcessing(claimId);
-
-  return { claim_id: claimId, case_id: caseId };
+export interface DashboardStats {
+  total: number;
+  approved: number;
+  rejected: number;
+  partial: number;
+  manual_review: number;
+  completed: number;
+  avg_processing_ms: number | null;
 }
 
-/**
- * Get the result of a test case claim.
- * Returns the full claim row once it's done processing.
- */
-export async function getTestCaseResult(
-  claimId: string
-): Promise<TestCaseOutcome | null> {
-  await requireAdmin();
-
+export async function getAllClaims(): Promise<DashboardClaim[]> {
   const rows = (await query(
-    `SELECT claim_id, status, decision, approved_amount, confidence_score,
+    `SELECT claim_id, member_id, category, claimed_amount, treatment_date,
+            hospital_name, status, decision, approved_amount, confidence_score,
             rejection_reasons, error_message, fraud_score, fraud_signals,
-            trace_json, current_step, completed_at, created_at
+            trace_json, current_step, created_at, completed_at
      FROM claims
-     WHERE claim_id = $1`,
-    [claimId]
+     ORDER BY created_at DESC
+     LIMIT 100`
   )) as unknown as ClaimRow[];
 
-  if (!rows || rows.length === 0) {
-    return null;
-  }
-
-  const row = rows[0];
-  return {
+  return rows.map((row) => ({
     claim_id: row.claim_id,
+    member_id: row.member_id,
+    category: row.category,
+    claimed_amount: row.claimed_amount != null ? Number(row.claimed_amount) : 0,
+    treatment_date: row.treatment_date,
+    hospital_name: row.hospital_name,
     status: row.status,
     decision: row.decision,
-    // Postgres NUMERIC returns as string — cast to number
     approved_amount: row.approved_amount != null ? Number(row.approved_amount) : null,
     confidence_score: row.confidence_score != null ? Number(row.confidence_score) : null,
-    fraud_score: row.fraud_score != null ? Number(row.fraud_score) : null,
     rejection_reasons: row.rejection_reasons,
     error_message: row.error_message,
+    fraud_score: row.fraud_score != null ? Number(row.fraud_score) : null,
     fraud_signals: row.fraud_signals,
     trace_json: row.trace_json,
     current_step: row.current_step,
-    completed_at: row.completed_at,
     created_at: row.created_at,
+    completed_at: row.completed_at,
+  }));
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const rows = await query(
+    `SELECT
+       COUNT(*)::int AS total,
+       COUNT(*) FILTER (WHERE decision = 'APPROVED')::int AS approved,
+       COUNT(*) FILTER (WHERE decision = 'REJECTED')::int AS rejected,
+       COUNT(*) FILTER (WHERE decision = 'PARTIAL')::int AS partial,
+       COUNT(*) FILTER (WHERE decision = 'MANUAL_REVIEW')::int AS manual_review,
+       COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed,
+       AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) * 1000)
+         FILTER (WHERE completed_at IS NOT NULL) AS avg_processing_ms
+     FROM claims`
+  );
+
+  const row = rows[0] || {};
+  return {
+    total: Number(row.total) || 0,
+    approved: Number(row.approved) || 0,
+    rejected: Number(row.rejected) || 0,
+    partial: Number(row.partial) || 0,
+    manual_review: Number(row.manual_review) || 0,
+    completed: Number(row.completed) || 0,
+    avg_processing_ms: row.avg_processing_ms != null ? Number(row.avg_processing_ms) : null,
   };
 }
