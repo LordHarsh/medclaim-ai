@@ -50,22 +50,15 @@ Treatment (if available): "{treatment}"
 Waiting period conditions:
 {conditions_text}
 
-Does the diagnosis match any of these conditions? Be VERY precise and conservative:
-- "Viral Fever" does NOT match diabetes
-- "Type 2 Diabetes Mellitus" DOES match diabetes
-- "Knee Pain" does NOT match joint_replacement (it's not a replacement surgery)
-- "Chronic Joint Pain" does NOT match joint_replacement
-- "Lumbar Disc Herniation" does NOT match joint_replacement (it's a spinal condition, not a joint replacement)
-- "Suspected Lumbar Disc Herniation" does NOT match any condition (it's a diagnostic investigation)
-- "Acute Bronchitis" does NOT match any condition
-- "Gastroenteritis" does NOT match any condition
-- "Migraine" does NOT match any condition
-- "Morbid Obesity" does NOT match obesity_treatment for waiting period purposes (obesity is handled as an EXCLUSION, not a waiting period condition)
-- "Bariatric Consultation" does NOT match obesity_treatment waiting period (it's an excluded procedure)
+Does the diagnosis match any of these conditions?
 
-IMPORTANT: Only match when the diagnosis EXPLICITLY names the condition (diabetes, hypertension, thyroid, etc).
-Orthopedic, spinal, and surgical conditions should NOT match unless they are literally about joint REPLACEMENT surgery.
-Obesity/bariatric should NOT match the waiting period — these are handled separately as policy exclusions.
+MATCHING RULES:
+1. Only match when the diagnosis EXPLICITLY names or directly refers to one of the listed conditions
+2. A diagnostic investigation (MRI, CT scan, blood test) is NOT a match — it's just a test being ordered
+3. Spinal, orthopedic, neurological conditions do NOT match "joint_replacement" — only actual joint replacement SURGERY matches
+4. Conditions that appear in the policy's exclusion list should NOT be matched here as waiting period conditions — they are handled separately by the exclusion check
+5. Acute/common illnesses (fever, infections, pain, headaches) never match chronic condition categories
+6. When in doubt, return matches_condition=false — false negatives are preferred over false positives
 
 Return your classification as structured output."""
 
@@ -111,10 +104,12 @@ Vision-specific exclusions (if category is VISION):
 {vision_text}
 
 Match rules:
-- "Morbid Obesity BMI 37" + "Bariatric Consultation" → matches "Obesity and weight loss programs" AND "Bariatric surgery"
-- "Viral Fever" → does NOT match any exclusion
-- "Teeth Whitening" in DENTAL claim → matches dental exclusion
-- "Root Canal Treatment" → does NOT match any exclusion (it's a medical procedure)
+1. Match when diagnosis/treatment semantically refers to any item in the exclusion lists above
+2. Obesity, bariatric, weight loss programs are excluded under general exclusions
+3. Cosmetic procedures are excluded (general + dental + vision specific lists)
+4. Common medical treatments (antibiotics, consultations, diagnostics) are NOT excluded
+5. When the category is DENTAL or VISION, also check category-specific exclusion lists
+6. When in doubt, return is_excluded=false — false negatives are preferred over false positives
 
 Is this diagnosis/treatment excluded? Return your classification."""
 
