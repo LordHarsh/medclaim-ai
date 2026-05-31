@@ -275,9 +275,8 @@ function ClaimRow({
   return (
     <>
       <tr
-        onClick={onToggle}
+        onClick={() => router.push(`/admin/claims/${claim.claim_id}`)}
         className="border-b border-[var(--hairline)] cursor-pointer hover:bg-[var(--canvas-soft)] transition-colors"
-        style={{ backgroundColor: isExpanded ? "var(--canvas-soft)" : undefined }}
       >
         <td className="px-4 py-3 text-[13px] font-mono text-[var(--ink)] tracking-[-0.26px]">
           <button
