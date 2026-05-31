@@ -270,7 +270,6 @@ export default async function ClaimDetailPage({
               claimId={claimId}
               initialStatus={claim.status}
               initialStep={claim.current_step}
-              traceJson={claim.trace_json}
               isTerminal={isTerminal}
             />
           </div>

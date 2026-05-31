@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { ClaimProgress } from "@/components/claim-progress";
-import { TraceViewer } from "@/components/trace-viewer";
 
 interface DecisionData {
   decision: string;
@@ -19,7 +18,6 @@ interface ClaimDetailClientProps {
   claimId: string;
   initialStatus: string;
   initialStep: string;
-  traceJson: Record<string, unknown> | null;
   isTerminal: boolean;
 }
 
@@ -27,12 +25,10 @@ export function ClaimDetailClient({
   claimId,
   initialStatus,
   initialStep,
-  traceJson,
   isTerminal,
 }: ClaimDetailClientProps) {
   const [decision, setDecision] = useState<DecisionData | null>(null);
   const [error, setError] = useState<ErrorData | null>(null);
-  const [showTrace, setShowTrace] = useState(false);
 
   const handleDecision = useCallback((data: DecisionData) => {
     setDecision(data);
@@ -113,37 +109,6 @@ export function ClaimDetailClient({
         </div>
       )}
 
-      {/* Trace Viewer (for terminal states with trace data) */}
-      {isTerminal && traceJson && (
-        <div>
-          <button
-            onClick={() => setShowTrace(!showTrace)}
-            className="flex items-center gap-2 body-md text-[var(--primary-indigo)] hover:text-[var(--primary-deep)] transition-colors"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`h-4 w-4 transition-transform duration-200 ${
-                showTrace ? "rotate-90" : ""
-              }`}
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-            {showTrace ? "Hide" : "Show"} Processing Trace
-          </button>
-
-          {showTrace && (
-            <div className="mt-4">
-              <TraceViewer trace={traceJson as never} />
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
