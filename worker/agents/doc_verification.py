@@ -10,6 +10,14 @@ from prompts.verification import DOCUMENT_CLASSIFICATION_PROMPT, VERIFICATION_SY
 from core.state import ClaimState
 
 
+
+def _get(obj, key, default=None):
+    """Get attribute from either dict or ORM object."""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 def _get_required_types(category: str, policy: PolicyConfig) -> list[str]:
     """Get required document types for a claim category from policy config."""
     req = policy.document_requirements.get(category.upper())
@@ -28,11 +36,11 @@ def _classify_document_from_metadata(doc: dict) -> DocumentClassification:
         "UNREADABLE": 0.20,
     }
 
-    actual_type = doc.get("actual_type", "UNKNOWN")
-    quality_label = doc.get("quality", "GOOD")
+    actual_type = _get(doc, "actual_type", "UNKNOWN")
+    quality_label = _get(doc, "quality", "GOOD")
     quality_score = quality_map.get(quality_label, 0.85)
     is_readable = quality_score >= 0.4
-    patient_name = doc.get("patient_name_on_doc") or doc.get("content", {}).get("patient_name")
+    patient_name = _get(doc, "patient_name_on_doc", None) or (_get(doc, "content", None) or {}).get("patient_name")
 
     quality_issues = []
     if quality_label == "UNREADABLE":
@@ -53,7 +61,7 @@ def _classify_document_from_metadata(doc: dict) -> DocumentClassification:
 def _classify_document_with_vision(doc: dict) -> DocumentClassification:
     """Use Claude Vision to classify a document image."""
     llm = get_llm("vision")
-    image_bytes = doc.get("image_bytes")
+    image_bytes = _get(doc, "image_bytes", None)
 
     if not image_bytes:
         # No image available, return UNKNOWN
@@ -103,7 +111,7 @@ def run_doc_verification(state: ClaimState) -> dict:
     doc_results = []
     for doc in documents:
         # Decide whether to use metadata or Vision API
-        has_metadata = "actual_type" in doc
+        has_metadata = hasattr(doc, "actual_type") and _get(doc, "actual_type", None) is not None
         if has_metadata:
             classification = _classify_document_from_metadata(doc)
         else:
@@ -111,7 +119,7 @@ def run_doc_verification(state: ClaimState) -> dict:
 
         doc_results.append(
             DocumentVerificationResult(
-                s3_key=doc.get("s3_key", doc.get("file_id", "")),
+                s3_key=_get(doc, "s3_key", "") or _get(doc, "file_id", ""),
                 detected_type=classification.type,
                 classification_confidence=classification.confidence,
                 quality_score=classification.quality_score,
@@ -158,8 +166,8 @@ def run_doc_verification(state: ClaimState) -> dict:
         doc = unreadable_docs[0]
         original_name = ""
         for orig_doc in documents:
-            if orig_doc.get("s3_key", orig_doc.get("file_id", "")) == doc.s3_key:
-                original_name = orig_doc.get("original_name", orig_doc.get("file_name", "your document"))
+            if (_get(orig_doc, "s3_key", "") or _get(orig_doc, "file_id", "")) == doc.s3_key:
+                original_name = _get(orig_doc, "original_name", None) or _get(orig_doc, "file_name", "your document")
                 break
         error_message = (
             f"Your {doc.detected_type} ({original_name}) is too blurry to read. "

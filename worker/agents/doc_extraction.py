@@ -25,13 +25,21 @@ from prompts.extraction import (
 from core.state import ClaimState
 
 
+
+def _get(obj, key, default=None):
+    """Get attribute from either dict or ORM object."""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 def _extract_from_content(doc: dict) -> dict:
     """
     For test cases that provide structured content directly,
     convert to our extraction format without calling Vision.
     """
-    content = doc.get("content", {})
-    doc_type = doc.get("actual_type", doc.get("detected_type", "UNKNOWN"))
+    content = _get(doc, "content", {}) or {}
+    doc_type = _get(doc, "actual_type", None) or _get(doc, "detected_type", "UNKNOWN")
 
     if doc_type == "PRESCRIPTION":
         medicines = []
@@ -112,7 +120,7 @@ def _extract_from_content(doc: dict) -> dict:
 def _extract_with_vision(doc: dict, doc_type: str) -> dict:
     """Use Claude Vision to extract data from a document image."""
     llm = get_llm("vision")
-    image_bytes = doc.get("image_bytes")
+    image_bytes = _get(doc, "image_bytes", None)
 
     if not image_bytes:
         return {"type": doc_type.lower(), "data": None}
@@ -173,11 +181,11 @@ def run_doc_extraction(state: ClaimState) -> dict:
     confidences = []
 
     for doc in documents:
-        doc_key = doc.get("s3_key", doc.get("file_id", ""))
-        doc_type = type_map.get(doc_key, doc.get("actual_type", "UNKNOWN"))
+        doc_key = _get(doc, "s3_key", "") or _get(doc, "file_id", "")
+        doc_type = type_map.get(doc_key, _get(doc, "actual_type", "UNKNOWN"))
 
         # If document has content field (test case), use it directly
-        if "content" in doc and doc["content"]:
+        if _get(doc, "content"):
             result = _extract_from_content(doc)
         else:
             result = _extract_with_vision(doc, doc_type)
