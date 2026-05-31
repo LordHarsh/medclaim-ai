@@ -221,7 +221,19 @@ VALUES (
         "high_value_claim_threshold": 25000,
         "auto_manual_review_above": 25000,
         "fraud_score_manual_review_threshold": 0.80
-      }
+      },
+      "evaluation_rules": [
+        {"id": "member_eligibility", "type": "deterministic", "blocking": true, "order": 1},
+        {"id": "submission_deadline", "type": "deterministic", "blocking": true, "order": 2},
+        {"id": "minimum_amount", "type": "deterministic", "blocking": true, "order": 3},
+        {"id": "initial_waiting_period", "type": "deterministic", "blocking": true, "order": 4},
+        {"id": "condition_waiting_period", "type": "llm_classification", "blocking": true, "order": 5},
+        {"id": "exclusion_check", "type": "llm_classification", "blocking": true, "order": 6},
+        {"id": "pre_authorization", "type": "deterministic", "blocking": true, "order": 7},
+        {"id": "per_claim_limit", "type": "deterministic", "blocking": true, "order": 8},
+        {"id": "procedure_coverage", "type": "deterministic", "blocking": false, "order": 9},
+        {"id": "amount_calculation", "type": "deterministic", "blocking": false, "order": 10}
+      ]
     }'::jsonb
 )
 ON CONFLICT (policy_id) DO UPDATE SET
