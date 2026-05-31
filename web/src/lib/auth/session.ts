@@ -30,7 +30,7 @@ export async function requireMember() {
   const created = (await sql(
     `INSERT INTO members (member_id, auth_user_id, name, date_of_birth, gender, relationship, join_date)
      VALUES ($1, $2, $3, '1990-01-01', 'M', 'SELF', CURRENT_DATE)
-     ON CONFLICT (auth_user_id) DO UPDATE SET auth_user_id = EXCLUDED.auth_user_id
+     ON CONFLICT (member_id) DO UPDATE SET auth_user_id = EXCLUDED.auth_user_id
      RETURNING *`,
     [memberId, session.user.id, name]
   )) as unknown as MemberRow[];
