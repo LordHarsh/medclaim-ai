@@ -29,6 +29,8 @@ export default function NewClaimPage() {
   const [hospitalName, setHospitalName] = useState("");
   // Map: docType -> uploaded file info
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, UploadedDoc>>({});
+  // Map: docType -> classification status
+  const [classificationState, setClassificationState] = useState<Record<string, "classifying" | "matched" | "mismatched" | "error">>({});
   const [errors, setErrors] = useState<{ field?: string; message: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -55,6 +57,15 @@ export default function NewClaimPage() {
       delete updated[docType];
       return updated;
     });
+    setClassificationState((prev) => {
+      const updated = { ...prev };
+      delete updated[docType];
+      return updated;
+    });
+  }, []);
+
+  const handleClassificationChange = useCallback((docType: string, status: "classifying" | "matched" | "mismatched" | "error") => {
+    setClassificationState((prev) => ({ ...prev, [docType]: status }));
   }, []);
 
   // Get document requirements for the selected category
@@ -118,10 +129,15 @@ export default function NewClaimPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Check if all required docs are uploaded
+  // Check if all required docs are uploaded AND classified as matching
   const allRequiredUploaded = (() => {
     if (!category || !docRequirements) return false;
-    return docRequirements.required.every((dt) => uploadedDocs[dt]?.s3Key);
+    return docRequirements.required.every((dt) => {
+      const hasFile = !!uploadedDocs[dt]?.s3Key;
+      const classStatus = classificationState[dt];
+      // Must have file + classification must be "matched" (not classifying, mismatched, or error)
+      return hasFile && classStatus === "matched";
+    });
   })();
 
   return (
@@ -198,8 +214,8 @@ export default function NewClaimPage() {
                   value={category}
                   onChange={(e) => {
                     setCategory(e.target.value as ClaimCategory | "");
-                    // Clear uploaded docs when category changes
                     setUploadedDocs({});
+                    setClassificationState({});
                   }}
                   className="input-design w-full text-[var(--ink)] bg-[var(--canvas)] appearance-none cursor-pointer"
                   required
@@ -334,6 +350,7 @@ export default function NewClaimPage() {
                             required={true}
                             onUploadComplete={handleUploadComplete}
                             onRemove={handleRemoveDoc}
+                            onClassificationChange={handleClassificationChange}
                             currentFile={uploadedDocs[docType] || null}
                           />
                         ))}
@@ -357,6 +374,7 @@ export default function NewClaimPage() {
                             required={false}
                             onUploadComplete={handleUploadComplete}
                             onRemove={handleRemoveDoc}
+                            onClassificationChange={handleClassificationChange}
                             currentFile={uploadedDocs[docType] || null}
                           />
                         ))}

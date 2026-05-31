@@ -309,6 +309,7 @@ interface SingleDocUploadProps {
   required: boolean;
   onUploadComplete: (docType: string, s3Key: string) => void;
   onRemove: (docType: string) => void;
+  onClassificationChange?: (docType: string, status: "classifying" | "matched" | "mismatched" | "error") => void;
   currentFile?: { name: string; size: number; s3Key: string } | null;
 }
 
@@ -319,6 +320,7 @@ export function SingleDocUpload({
   required,
   onUploadComplete,
   onRemove,
+  onClassificationChange,
   currentFile,
 }: SingleDocUploadProps) {
   const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">(
@@ -332,6 +334,7 @@ export function SingleDocUpload({
   const classifyDocument = useCallback(async (s3Key: string, contentType: string) => {
     setClassificationStatus("classifying");
     setClassification(null);
+    onClassificationChange?.(docType, "classifying");
     try {
       const res = await fetch("/api/classify-document", {
         method: "POST",
@@ -340,15 +343,19 @@ export function SingleDocUpload({
       });
       if (!res.ok) {
         setClassificationStatus("error");
+        onClassificationChange?.(docType, "error");
         return;
       }
       const data = (await res.json()) as ClassificationResult;
       setClassification(data);
       setClassificationStatus("done");
+      const matched = data.detected_type === docType;
+      onClassificationChange?.(docType, matched ? "matched" : "mismatched");
     } catch {
       setClassificationStatus("error");
+      onClassificationChange?.(docType, "error");
     }
-  }, []);
+  }, [docType, onClassificationChange]);
 
   const uploadFile = useCallback(
     async (file: File) => {
