@@ -40,7 +40,7 @@ export async function submitClaim(
   if (!members || members.length === 0) {
     return {
       success: false,
-      errors: [{ message: "Please complete onboarding first" }],
+      errors: [{ message: "Member profile not found" }],
     };
   }
 
