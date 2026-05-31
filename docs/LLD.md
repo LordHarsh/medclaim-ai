@@ -299,9 +299,14 @@ Shared mutable context passed to all evaluators:
 class EvaluationContext:
     policy, member, category, claimed_amount, treatment_date
     hospital_name, extracted_data, ytd_approved, cat_config
+    today: date              # date.today() or eval_date_override for test cases
     eligible_amount: float   # mutated by procedure_coverage
     line_item_decisions: list # mutated by procedure_coverage, read by amount_calculation
 ```
+
+### Eval Date Override
+
+Test case treatment dates are historical (2024). The submission deadline rule uses `ctx.today` which defaults to `date.today()`. For eval test cases, `claim_metadata.eval_freeze_date` is passed through state as `eval_date_override`, and `EvaluationContext.today` is set to that date instead. This simulates "submitting the claim the day after treatment" without modifying treatment dates or skipping rules. Regular user claims always use real `date.today()`.
 
 ## 8. Processing Flow (Step by Step)
 
