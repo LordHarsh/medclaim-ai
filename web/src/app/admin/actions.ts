@@ -67,6 +67,41 @@ export async function getAllClaims(): Promise<DashboardClaim[]> {
   }));
 }
 
+export async function getClaimById(claimId: string): Promise<DashboardClaim | null> {
+  const rows = (await query(
+    `SELECT claim_id, member_id, category, claimed_amount, treatment_date,
+            hospital_name, status, decision, approved_amount, confidence_score,
+            rejection_reasons, error_message, fraud_score, fraud_signals,
+            trace_json, current_step, created_at, completed_at
+     FROM claims WHERE claim_id = $1`,
+    [claimId]
+  )) as unknown as ClaimRow[];
+
+  if (!rows || rows.length === 0) return null;
+
+  const row = rows[0];
+  return {
+    claim_id: row.claim_id,
+    member_id: row.member_id,
+    category: row.category,
+    claimed_amount: row.claimed_amount != null ? Number(row.claimed_amount) : 0,
+    treatment_date: String(row.treatment_date),
+    hospital_name: row.hospital_name,
+    status: row.status,
+    decision: row.decision,
+    approved_amount: row.approved_amount != null ? Number(row.approved_amount) : null,
+    confidence_score: row.confidence_score != null ? Number(row.confidence_score) : null,
+    rejection_reasons: row.rejection_reasons,
+    error_message: row.error_message,
+    fraud_score: row.fraud_score != null ? Number(row.fraud_score) : null,
+    fraud_signals: row.fraud_signals,
+    trace_json: row.trace_json,
+    current_step: row.current_step,
+    created_at: row.created_at ? String(row.created_at) : "",
+    completed_at: row.completed_at ? String(row.completed_at) : null,
+  };
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   const rows = await query(
     `SELECT

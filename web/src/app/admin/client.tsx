@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { DashboardClaim } from "./actions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -269,6 +270,8 @@ function ClaimRow({
   decisionStyle: { bg: string; color: string } | null;
   onToggle: () => void;
 }) {
+  const router = useRouter();
+
   return (
     <>
       <tr
@@ -277,7 +280,16 @@ function ClaimRow({
         style={{ backgroundColor: isExpanded ? "var(--canvas-soft)" : undefined }}
       >
         <td className="px-4 py-3 text-[13px] font-mono text-[var(--ink)] tracking-[-0.26px]">
-          {shortId(claim.claim_id)}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/admin/claims/${claim.claim_id}`);
+            }}
+            className="hover:text-[var(--primary-indigo)] hover:underline underline-offset-2 transition-colors text-left"
+            title="View full claim detail"
+          >
+            {shortId(claim.claim_id)}
+          </button>
         </td>
         <td className="px-4 py-3 text-[13px] text-[var(--ink-secondary)] tracking-[-0.26px]">
           {claim.member_id}

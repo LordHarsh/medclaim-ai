@@ -1,6 +1,7 @@
 import base64
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from thefuzz import fuzz as name_fuzz
 
 from core.config import get_llm
 from core.utils import detect_mime_type
@@ -142,8 +143,16 @@ def run_doc_verification(state: ClaimState) -> dict:
         for d in doc_results
         if d.patient_name_found
     ]
-    unique_names = set(n["name"] for n in names_found if n["name"])
-    patient_mismatch = PatientMismatch(detected=len(unique_names) > 1, names_found=names_found)
+    all_names = [n["name"].strip() for n in names_found if n["name"]]
+    names_are_consistent = True
+    if len(all_names) >= 2:
+        first_name = all_names[0]
+        for other in all_names[1:]:
+            similarity = name_fuzz.ratio(first_name.lower(), other.lower())
+            if similarity < 75:  # Below 75% = genuinely different person
+                names_are_consistent = False
+                break
+    patient_mismatch = PatientMismatch(detected=not names_are_consistent, names_found=names_found)
 
     # Determine if should stop early
     should_stop_early = False
@@ -174,17 +183,22 @@ def run_doc_verification(state: ClaimState) -> dict:
             f"Please re-upload a clearer photo. "
             f"Tip: photograph in good lighting with the document flat on a surface."
         )
-    elif patient_mismatch.detected and len(unique_names) > 1:
+    elif patient_mismatch.detected:
         should_stop_early = True
         early_stop_reason = "PATIENT_MISMATCH"
-        name_list = list(unique_names)
-        # Find doc types for each name
+        # Use original names (not normalized) for the error message
+        seen_names: dict[str, str] = {}
+        for nf in names_found:
+            normalized = nf["name"].strip().lower()
+            if normalized not in seen_names:
+                seen_names[normalized] = nf["name"]
+        unique_original = list(seen_names.values())
         name_docs = {}
         for nf in names_found:
             if nf["name"] not in name_docs:
                 name_docs[nf["name"]] = nf["document_type"]
-        if len(name_list) >= 2:
-            n1, n2 = name_list[0], name_list[1]
+        if len(unique_original) >= 2:
+            n1, n2 = unique_original[0], unique_original[1]
             d1, d2 = name_docs.get(n1, "document"), name_docs.get(n2, "document")
             error_message = (
                 f"The {d1} is for '{n1}' but the {d2} shows '{n2}'. "
