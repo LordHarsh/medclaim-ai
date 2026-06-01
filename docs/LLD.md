@@ -46,67 +46,15 @@ MedClaim AI is an automated health insurance claims processing system that accep
 
 ### 4.2 Claim Processing Flow
 
-```
-User ──► Next.js UI ──► S3 (presigned PUT)
-              │
-              ▼
-         Server Action ──► INSERT claims + claim_documents
-              │
-              ▼
-           SQS Queue ──────────────────────────────────┐
-                                                       ▼
-                                              Lambda (handler.py)
-                                                       │
-                                          ┌────────────┼────────────┐
-                                          ▼            ▼            ▼
-                                     Fetch DB    Download S3   Build State
-                                          └────────────┼────────────┘
-                                                       ▼
-                                              LangGraph Pipeline
-                                              (5 agents + persist)
-                                                       │
-                                                       ▼
-                                              UPDATE claims (result)
-                                                       │
-              ┌────────────────────────────────────────┘
-              ▼
-         SSE Stream (poll) ──► UI updates in real-time
-```
+![Infrastructure Diagram](./infra.png)
 
-### 4.3 Pipeline Graph (LangGraph State Machine)
+### 4.3 Lambda Worker Pipeline
 
-```
-                    ┌──────────────┐
-                    │  doc_verify  │  (CRITICAL)
-                    └──────┬───────┘
-                           │
-                    should_stop_early?
-                     /            \
-                  YES              NO
-                   │                │
-     ┌─────────────▼──┐    ┌───────▼──────┐
-     │persist_early_stop│    │  doc_extract  │ (degradable)
-     └────────┬────────┘    └───────┬──────┘
-              │                     │
-              ▼                     ▼
-             END            ┌──────────────┐
-                            │ policy_engine │ (degradable)
-                            └──────┬───────┘
-                                   │
-                            ┌──────▼───────┐
-                            │fraud_detection│ (degradable)
-                            └──────┬───────┘
-                                   │
-                            ┌──────▼───────┐
-                            │final_decision │ (degradable)
-                            └──────┬───────┘
-                                   │
-                            ┌──────▼───────┐
-                            │persist_result │
-                            └──────┬───────┘
-                                   │
-                                  END
-```
+![Lambda Worker Pipeline](./lambda-worker.png)
+
+### 4.4 Policy Engine Orchestrator
+
+![Policy Engine Orchestrator](./orchestrator.png)
 
 ## 5. API Design and Contracts
 
@@ -250,31 +198,17 @@ The policy engine is fully config-driven. Rules are defined in `policy_config.co
 
 ### Architecture
 
-```
-PolicyConfig.evaluation_rules[]  ──►  Orchestrator (run_policy_engine)
-                                            │
-                                    for rule in sorted(rules, key=order):
-                                            │
-                                    ┌───────▼────────┐
-                                    │EVALUATOR_REGISTRY│
-                                    │  [rule.id]()   │
-                                    └───────┬────────┘
-                                            │
-                                    RuleEvaluation(passed, details)
-                                            │
-                                    if !passed && blocking: REJECT + stop
-```
+See [orchestrator diagram](./orchestrator.png) for the visual flow.
 
 ### EvaluationRule Schema
 
-```python
-class EvaluationRule:
-    id: str          # "member_eligibility", "exclusion_check", etc.
-    type: str        # "deterministic" or "llm_classification"
-    blocking: bool   # True = rejection stops pipeline
-    order: int       # Execution order (1-10)
-    config: dict     # Rule-specific parameters
-```
+| Field | Type | Description |
+|---|---|---|
+| id | string | Rule identifier (e.g., "member_eligibility") |
+| type | string | "deterministic" or "llm_classification" |
+| blocking | boolean | If true, failure stops the pipeline |
+| order | integer | Execution order (1-10) |
+| config | object | Rule-specific parameters |
 
 ### Registry (10 evaluators)
 
@@ -295,14 +229,20 @@ class EvaluationRule:
 
 Shared mutable context passed to all evaluators:
 
-```python
-class EvaluationContext:
-    policy, member, category, claimed_amount, treatment_date
-    hospital_name, extracted_data, ytd_approved, cat_config
-    today: date              # date.today() or eval_date_override for test cases
-    eligible_amount: float   # mutated by procedure_coverage
-    line_item_decisions: list # mutated by procedure_coverage, read by amount_calculation
-```
+| Field | Type | Description |
+|---|---|---|
+| policy | PolicyConfig | Full typed policy configuration |
+| member | Member | ORM member record (join_date, name, etc.) |
+| category | string | Claim category |
+| claimed_amount | float | Amount claimed in INR |
+| treatment_date | date | Date of treatment |
+| hospital_name | string | Provider name (for network discount check) |
+| extracted_data | dict | Structured data from document extraction |
+| ytd_approved | float | Year-to-date approved total for this member |
+| cat_config | OpdCategory | Category-specific config (co-pay%, discount%, sub-limit) |
+| today | date | `date.today()` or eval_date_override for test cases |
+| eligible_amount | float | Mutated by procedure_coverage evaluator |
+| line_item_decisions | list | Mutated by procedure_coverage, read by amount_calculation |
 
 ### Eval Date Override
 
