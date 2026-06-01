@@ -205,16 +205,19 @@ def persist_early_stop(
     message: str,
     trace_json: dict,
 ) -> None:
-    """Write early stop as COMPLETED + REJECTED with document verification failure reason."""
+    """Write early stop — NO decision made. Just tells the user what to fix.
+
+    Per test cases TC001-TC003: decision must be null, system must not reject,
+    just stop and ask for correct documents.
+    """
     now = datetime.now(timezone.utc)
     with Session() as session:
         session.execute(
             update(Claim)
             .where(Claim.claim_id == uuid.UUID(claim_id))
             .values(
-                status="COMPLETED",
-                decision="REJECTED",
-                rejection_reasons=[reason],
+                status="NEEDS_REUPLOAD",
+                decision=None,
                 error_message=message,
                 trace_json=trace_json,
                 completed_at=now,
