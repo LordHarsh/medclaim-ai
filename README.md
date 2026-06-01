@@ -187,11 +187,28 @@ Adding a new rule = new evaluator class + register in registry + add config entr
 
 ## Documentation
 
+### Low-Level Design (`docs/LLD.md`)
+
+The LLD is the primary architecture document for this system. It covers:
+
+- **Functional & Non-Functional Requirements** — what the system does and its performance targets
+- **Architecture** — component diagram, claim processing flow, pipeline graph (with visual diagrams)
+- **API Contracts** — request/response shapes for all endpoints
+- **Database Schema** — all tables with column types and descriptions
+- **Policy Engine** — how the dynamic orchestrator works, evaluator registry, evaluation context
+- **Processing Flow** — 13 numbered steps from SQS message to SSE delivery
+- **Error Handling** — scenario-to-handling matrix for every failure mode
+- **Observability** — what's traced in LangSmith, Logfire, and CloudWatch
+- **Security** — auth, RLS, IAM, input validation
+- **Infrastructure** — AWS resource configurations
+
+### Other Documents
+
 | Document | Description |
 |----------|-------------|
-| `docs/LLD.md` | Low-Level Design (architecture, contracts, flows, error handling) |
-| `docs/POLICY.md` | Policy terms explained (all rules, calculations, members) |
-| `docs/worker-pipeline-diagram.md` | Mermaid diagrams of Lambda internals |
-| `docs/infra-diagram.png` | Infrastructure diagram |
+| `docs/POLICY.md` | Policy terms explained — all rules, calculations, worked examples, member roster |
+| `docs/infra.png` | Infrastructure diagram (user → Vercel → S3/SQS → Lambda → Neon) |
+| `docs/lambda-worker.png` | Lambda worker internal pipeline diagram |
+| `docs/orchestrator.png` | Policy engine orchestrator flow diagram |
 | `resources/test_cases.json` | 12 test cases with expected outcomes |
-| `resources/policy_terms.json` | Full policy configuration |
+| `resources/policy_terms.json` | Full policy configuration (the system's source of truth) |
