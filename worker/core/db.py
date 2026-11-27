@@ -17,8 +17,21 @@ from models.policy import PolicyConfig
 # Engine + session factory (module-level; reused across warm Lambda invocations)
 # ---------------------------------------------------------------------------
 
+def _with_driver(url: str) -> str:
+    """
+    Name the driver that requirements.txt installs (psycopg2).
+
+    A bare postgresql:// URL leaves the choice to SQLAlchemy, and newer releases
+    pick psycopg 3, which is not installed in the image.
+    """
+    for bare in ("postgresql://", "postgres://"):
+        if url and url.startswith(bare):
+            return "postgresql+psycopg2://" + url[len(bare):]
+    return url
+
+
 engine = create_engine(
-    DATABASE_URL,
+    _with_driver(DATABASE_URL),
     pool_pre_ping=True,   # detect stale connections after Lambda freeze/thaw
     pool_size=1,          # Lambda is single-threaded per invocation
     max_overflow=0,

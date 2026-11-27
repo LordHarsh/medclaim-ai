@@ -276,3 +276,18 @@ class TestEvalIsolation:
 
         history = [SimpleNamespace(claim_id=c) for c in ("this", "older-run")]
         assert [h.claim_id for h in isolate_eval_history("this", {}, history)] == ["this"]
+
+
+class TestDatabaseUrl:
+    """The engine names the driver the image installs instead of leaving it to SQLAlchemy."""
+
+    def test_bare_urls_get_psycopg2(self):
+        from core.db import _with_driver
+
+        assert _with_driver("postgresql://u:p@h/db") == "postgresql+psycopg2://u:p@h/db"
+        assert _with_driver("postgres://u:p@h/db") == "postgresql+psycopg2://u:p@h/db"
+
+    def test_explicit_driver_is_left_alone(self):
+        from core.db import _with_driver
+
+        assert _with_driver("postgresql+psycopg2://u:p@h/db") == "postgresql+psycopg2://u:p@h/db"
