@@ -42,7 +42,7 @@ The graph is a LangGraph `StateGraph` over one typed state object (`worker/core/
 
 - **Verification is critical.** If it throws, the node re-raises and the handler marks the claim `FAILED`.
 - **The other four agents are degradable.** Each node is wrapped (`PipelineNode` in `worker/core/pipeline.py`): on an exception it records the step in `degraded_steps`, takes 0.15 off the confidence, and substitutes a safe default. A failed policy engine defaults to `MANUAL_REVIEW`, never to an approval.
-- **Duplicates are dropped.** The handler claims the SQS message id on the claim row in one atomic update, so a second delivery of the same message is skipped.
+- **Retries run, duplicates do not.** One atomic update decides whether a delivery is processed: it claims the row only if the claim is unfinished and no other message owns it. So when the worker crashes or times out and SQS redelivers the message, the claim is processed again; a delivery for a claim that is already `COMPLETED` or `NEEDS_REUPLOAD` is skipped. After the queue's retry limit the message goes to the dead-letter queue and the claim stays `FAILED`.
 - **Bad documents are not a rejection.** The claim ends as `NEEDS_REUPLOAD` with no decision, so the member can fix the upload.
 
 ### The infrastructure around it
@@ -71,7 +71,7 @@ flowchart LR
 | Database | Neon Postgres, SQLAlchemy in the worker |
 | Queue and storage | SQS (with a dead-letter queue), S3 with presigned uploads |
 | Observability | LangSmith for LLM calls, Logfire spans per step and per rule |
-| Deploys | Vercel for the web app; GitHub Actions builds the worker image, pushes it to ECR and updates the Lambda |
+| Deploys | Vercel for the web app; GitHub Actions runs the worker's unit tests, builds the image, pushes it to ECR and updates the Lambda |
 
 ## The policy is data
 
@@ -117,10 +117,10 @@ Notes on that run:
 
 ## What is not done
 
-- **Retries after a crash do nothing.** The idempotency check records the SQS message id before processing, so when SQS redelivers the same message after a failure it is treated as a duplicate and skipped. The claim stays `FAILED`. The fix is to key idempotency on a completed status instead of on first receipt.
+- **A retry reruns the whole pipeline.** There is no checkpoint between agents, so a claim that failed at the fourth agent pays for the first three again.
 - **The admin pages are open to any signed-in user.** There is no operations role yet.
 - **Trace steps carry no per-step timings.** Durations go to Logfire; the stored trace only supports a total.
-- **No tests in the repository or in CI.** The worker's unit tests are still git-ignored, and the workflow only builds and deploys.
+- **Test coverage is partial.** The worker's unit tests (policy rules, fraud signals, the handler and its retry behaviour) run in CI before every deploy. The end-to-end pipeline test is not in the repository because its fixtures predate the current document format, and the web app has no committed tests.
 - **One policy.** The policy id is fixed at submission. The engine reads whatever config it is given, but nothing in the product lets you choose.
 
 ## Running it locally
@@ -157,6 +157,7 @@ web/                      Next.js app (Vercel)
   src/lib/demo/           recorded-runs.json and the sample list
 worker/                   Lambda worker
   handler.py              SQS entry point: idempotency, context loading
+  tests/                  unit tests: policy rules, fraud signals, handler and retries
   core/pipeline.py        the graph, node wrapper, degradation defaults, trace builder
   core/state.py           the state every agent reads and writes
   agents/                 the five agents

@@ -104,6 +104,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
   }
 
   // 3. For TC009: Insert prior claim history records
+  const seededHistoryClaimIds: string[] = [];
   if (input.claims_history && input.claims_history.length > 0) {
     for (const histEntry of input.claims_history) {
       // Create a dummy completed claim for the history
@@ -121,6 +122,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
         ]
       );
       const histClaimId = histClaimRows[0].claim_id as string;
+      seededHistoryClaimIds.push(histClaimId);
 
       await query(
         `INSERT INTO claim_history (member_id, claim_id, claim_date, amount, provider, category, status)
@@ -151,7 +153,14 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
     ]
   );
 
-  // 5. Send to SQS for processing (Lambda claims the message_id via idempotency check)
+  // 5. Tell the worker which history belongs to this case. The cases share members and every run
+  //    leaves claims behind; the worker ignores everything not listed here for a test-runner claim.
+  await query(
+    `UPDATE claims SET claim_metadata = claim_metadata || $1::jsonb WHERE claim_id = $2`,
+    [JSON.stringify({ eval_history_claim_ids: seededHistoryClaimIds }), claimId]
+  );
+
+  // 6. Send to SQS for processing (Lambda claims the message_id via idempotency check)
   await sendClaimForProcessing(claimId);
 
   return { claim_id: claimId, case_id: caseId };
