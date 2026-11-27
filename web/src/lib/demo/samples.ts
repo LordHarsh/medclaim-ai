@@ -84,7 +84,7 @@ export const AGENTS: {
     step: "DOCUMENT_VERIFICATION",
     name: "Document verification",
     kind: "Gemini vision",
-    onFailure: "Critical: a failure here is retried by SQS",
+    onFailure: "Critical: if this step crashes, the claim fails",
     does: "Reads each upload, names its type, scores how readable it is, and checks every document is for the same patient. If the set is wrong, the pipeline stops here.",
   },
   {

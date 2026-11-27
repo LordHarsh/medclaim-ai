@@ -383,7 +383,7 @@ function Verification({ d }: { d: Dict }) {
       </ul>
       {stopped ? (
         <p className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sky-800">
-          <b className="font-medium">Stopped ({titleCase(str(d.early_stop_reason))}).</b> Message sent to the member:
+          <b className="font-medium">Stopped ({titleCase(str(d.early_stop_reason))}).</b>{" "}Message sent to the member:{" "}
           &ldquo;{str(d.error_message)}&rdquo;
         </p>
       ) : (
