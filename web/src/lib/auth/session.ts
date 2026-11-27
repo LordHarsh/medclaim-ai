@@ -23,13 +23,15 @@ export async function requireMember() {
     return { session, member: rows[0] };
   }
 
-  // Auto-create member on first access
+  // Auto-create member on first access.
+  // The join date is set a year back: with today's date every first claim would fall inside the policy's 30-day
+  // initial waiting period, and nobody trying the app could ever see an approval.
   const memberId = `MBR_${session.user.id.slice(0, 8).toUpperCase()}`;
   const name = session.user.name || session.user.email?.split("@")[0] || "Member";
 
   const created = (await sql(
     `INSERT INTO members (member_id, auth_user_id, name, date_of_birth, gender, relationship, join_date)
-     VALUES ($1, $2, $3, '1990-01-01', 'M', 'SELF', CURRENT_DATE)
+     VALUES ($1, $2, $3, '1990-01-01', 'M', 'SELF', CURRENT_DATE - INTERVAL '1 year')
      ON CONFLICT (member_id) DO UPDATE SET auth_user_id = EXCLUDED.auth_user_id
      RETURNING *`,
     [memberId, session.user.id, name]

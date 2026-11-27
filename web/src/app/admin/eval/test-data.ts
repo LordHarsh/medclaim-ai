@@ -327,6 +327,8 @@ export const TEST_CASES: TestCase[] = [
       claim_category: "ALTERNATIVE_MEDICINE",
       treatment_date: "2024-10-28",
       claimed_amount: 4000,
+      // Without this flag the worker runs the claim normally and nothing degrades (resources/test_cases.json sets it).
+      simulate_component_failure: true,
     },
     expected: {
       decision: "APPROVED",
