@@ -208,6 +208,11 @@ export function MoneySplit({ money, payer = "You pay" }: { money: Money; payer?:
           </>
         )}
       </div>
+      {!decided && money.wouldCover !== null && (
+        <p className="mt-2.5 text-[12px] text-ink-2">
+          If approved: <span className="tabular-nums text-ink">{inr(money.wouldCover)}</span>
+        </p>
+      )}
       {decided && (
         <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2">
           {covered > 0 && <Key swatch="bg-ok" label="Covered" value={inr(covered)} />}
@@ -396,7 +401,7 @@ export function DocThumbs({ docs }: { docs: DocView[] }) {
             </span>
             <span className="block border-t border-line px-2 py-1.5">
               <span className={cx("block truncate text-[12px] font-medium", bad && "text-bad")}>{d.type ? titleCase(d.type) : d.name}</span>
-              <span className="block truncate text-[11px] text-ink-3">{d.patient ?? d.name}</span>
+              {d.type && <span className="block truncate text-[11px] text-ink-3">{d.patient ?? d.name}</span>}
             </span>
           </>
         );

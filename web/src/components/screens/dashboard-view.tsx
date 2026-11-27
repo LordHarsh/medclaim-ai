@@ -49,6 +49,7 @@ export function DashboardView({ memberName, claims }: { memberName: string; clai
             <ul className="overflow-hidden rounded-card border border-line bg-surface">
               {claims.map((c) => {
                 const outcome = outcomeOf(c);
+                const covered = outcome === "rejected" ? 0 : c.approved_amount;
                 return (
                   <li key={c.claim_id} className="border-b border-line last:border-b-0">
                     <Link href={`/claims/${c.claim_id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-canvas sm:gap-4">
@@ -67,10 +68,10 @@ export function DashboardView({ memberName, claims }: { memberName: string; clai
                       </span>
                       <span className="w-24 shrink-0 text-right">
                         <span className="block text-[15px] font-semibold tabular-nums">
-                          {c.approved_amount !== null && c.approved_amount !== undefined ? inr(Number(c.approved_amount)) : inr(Number(c.claimed_amount))}
+                          {covered !== null && covered !== undefined ? inr(Number(covered)) : inr(Number(c.claimed_amount))}
                         </span>
                         <span className="block text-[12px] text-ink-3 tabular-nums">
-                          {c.approved_amount !== null && c.approved_amount !== undefined ? `of ${inr(Number(c.claimed_amount))}` : "claimed"}
+                          {covered !== null && covered !== undefined ? `of ${inr(Number(c.claimed_amount))}` : "claimed"}
                         </span>
                       </span>
                       <span className="hidden w-36 shrink-0 justify-end sm:flex">

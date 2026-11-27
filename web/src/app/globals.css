@@ -137,16 +137,25 @@
   }
 }
 
-/* Text fields and selects on the claim form. */
-.field {
-  @apply h-11 w-full rounded-[var(--radius-ctl)] border border-line-strong bg-surface px-3 text-[15px] text-ink;
+/* Text fields on the claim form. In the components layer, so a utility (padding for a prefix, say) still wins. */
+@layer components {
+  .field {
+    @apply h-11 w-full rounded-ctl border border-line-strong bg-surface px-3 text-[15px] text-ink;
+  }
+  .field::placeholder {
+    color: var(--color-ink-3);
+  }
+  .field:focus {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 1px;
+  }
 }
-.field::placeholder {
-  color: var(--color-ink-3);
+
+.no-scrollbar {
+  scrollbar-width: none;
 }
-.field:focus {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 1px;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* The part of a bill the policy does not cover is drawn hatched, so it reads as "missing" without relying on colour. */

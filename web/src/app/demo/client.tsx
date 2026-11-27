@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, FastForward, Play, RotateCcw, X } from "lucide-react";
 import { Button, Card, Label, LinkButton, cx, duration, inr, shortDate } from "@/components/ui";
 import { CategoryIcon } from "@/components/claim/category";
@@ -65,6 +65,11 @@ function Replay({ sample }: { sample: DemoSample }) {
   // While it plays, the panel follows the agent that just finished. A click takes over until the next run.
   const following = replay.revealed > 0 ? AGENT_STEPS[Math.min(replay.revealed, stepsRun) - 1].step : null;
   const selected = picked ?? following;
+
+  // The verdict lands under the track; bring it into view when the last agent finishes.
+  useEffect(() => {
+    if (replay.finished && replay.started) document.getElementById("verdict")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [replay.finished, replay.started]);
 
   const run = () => {
     setPicked(null);

@@ -67,7 +67,7 @@ export function ClaimResult({ claim, audience, documents = [], states, hideVerdi
   const stepVisible = step && stepIndex >= 0 && (shown[stepIndex] === "done" || shown[stepIndex] === "issue" || shown[stepIndex] === "failed");
 
   const verdict = !hideVerdict && (
-    <div className={cx("grid gap-4", showMoney && "lg:grid-cols-2")}>
+    <div id="verdict" className={cx("grid scroll-mt-20 gap-4", showMoney && "lg:grid-cols-2")}>
       <Verdict claim={claim} outcome={outcome} final={final} audience={audience} actions={actions} />
       {showMoney && (
         <Card className="animate-rise p-5">
@@ -331,8 +331,14 @@ function Decision({ d, audience }: { d: Dict; audience: Audience }) {
   return (
     <div className="space-y-4">
       {score !== null && <Confidence score={score} deductions={asList(d.confidence_deductions)} />}
-      {audience === "ops" && <Quote label="To the member" text={str(d.user_message)} />}
-      {audience === "ops" && <Quote label="To operations" text={str(d.ops_summary)} />}
+      {audience === "ops" && (str(d.user_message) || str(d.ops_summary)) && (
+        <More label="Messages written">
+          <div className="space-y-3">
+            <Quote label="To the member" text={str(d.user_message)} />
+            <Quote label="To operations" text={str(d.ops_summary)} />
+          </div>
+        </More>
+      )}
       {audience === "ops" && recs.length > 0 && (
         <ul className="flex flex-wrap gap-1.5 text-[12px]">
           {recs.map((r, i) => (

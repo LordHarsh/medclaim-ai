@@ -71,6 +71,7 @@ export function AdminView({ claims, stats }: { claims: DashboardClaim[]; stats: 
               {claims.map((c) => {
                 const outcome = outcomeOf(c);
                 const fraud = c.fraud_score;
+                const covered = outcome === "rejected" ? 0 : c.approved_amount;
                 return (
                   <li key={c.claim_id} className="border-b border-line last:border-b-0">
                     <Link
@@ -95,8 +96,8 @@ export function AdminView({ claims, stats }: { claims: DashboardClaim[]; stats: 
                       </span>
                       <span className="hidden text-right text-[14px] tabular-nums lg:block">{inr(c.claimed_amount)}</span>
                       <span className={cx("text-right text-[14px] font-semibold tabular-nums", c.approved_amount ? "text-ok" : "text-ink-3")}>
-                        {c.approved_amount !== null ? inr(c.approved_amount) : <span className="lg:hidden">{inr(c.claimed_amount)}</span>}
-                        {c.approved_amount === null && <span className="hidden lg:inline">–</span>}
+                        {covered !== null ? inr(covered) : <span className="lg:hidden">{inr(c.claimed_amount)}</span>}
+                        {covered === null && <span className="hidden lg:inline">–</span>}
                       </span>
                       <span className="col-span-2 flex items-center gap-3 lg:col-span-1">
                         <StatusPill outcome={outcome} />

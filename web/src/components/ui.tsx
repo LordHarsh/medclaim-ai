@@ -52,10 +52,16 @@ export type NavItem = { href: string; label: string; current?: boolean };
 export function TopBar({ home = "/", nav = [], children }: { home?: string; nav?: NavItem[]; children?: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Logo href={home} />
+      {/* On a phone the links drop to a second row, so nothing is squeezed. */}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 px-4 sm:h-14 sm:flex-nowrap sm:px-6">
+        <div className="flex h-14 items-center">
+          <Logo href={home} />
+        </div>
         {nav.length > 0 && (
-          <nav aria-label="Sections" className="-mx-1 flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+          <nav
+            aria-label="Sections"
+            className="no-scrollbar order-last -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-0.5 overflow-x-auto pb-2 sm:order-none sm:mx-0 sm:w-auto sm:min-w-0 sm:flex-1 sm:pb-0"
+          >
             {nav.map((n) => (
               <Link
                 key={n.href}
@@ -71,7 +77,7 @@ export function TopBar({ home = "/", nav = [], children }: { home?: string; nav?
             ))}
           </nav>
         )}
-        <div className={cx("flex shrink-0 items-center gap-2", nav.length === 0 && "ml-auto")}>{children}</div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>
       </div>
     </header>
   );
