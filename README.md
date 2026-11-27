@@ -111,8 +111,8 @@ Results of the full run recorded on 1 June 2026 (the same run the `/demo` page r
 
 Notes on that run:
 
-- **TC011 did not test what it claims to.** The web copy of the test case had lost the `simulate_component_failure` flag, so the worker processed the claim normally. The flag is restored in `web/src/app/admin/eval/test-data.ts`; the degradation path has unit tests on my machine (not yet committed) and no recorded end-to-end run.
-- **TC004 and TC010 picked up a fraud signal they should not have.** The cases reuse the same members, so earlier cases in the same run counted as "claims on the same day" and took 0.10 off the confidence. The amounts are right; the test data needs isolating per case.
+- **TC011 did not test what it claims to.** The web copy of the test case had lost the `simulate_component_failure` flag, so the worker processed the claim normally. The flag is restored in `web/src/app/admin/eval/test-data.ts`; the degradation path has no recorded end-to-end run in this table.
+- **TC004 and TC010 picked up a fraud signal they should not have.** The cases reuse the same members, so earlier cases in the same run counted as "claims on the same day" and took 0.10 off the confidence. The amounts are right. The runner now tells the worker which history belongs to each case, so later runs are isolated.
 - These are single runs, not averages. The two LLM-backed rules and the vision steps can vary between runs.
 
 ## What is not done
