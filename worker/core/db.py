@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import create_engine, event, func, text, update
+from sqlalchemy import create_engine, event, func, or_, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
@@ -227,25 +227,46 @@ def persist_early_stop(
         session.commit()
 
 
+# A claim in one of these states has been decided; nothing should run it again.
+FINISHED_STATUSES = ("COMPLETED", "NEEDS_REUPLOAD")
+
+
+def idempotency_claim_statement(claim_id: str, sqs_message_id: str):
+    """
+    The single UPDATE that decides whether a delivery may be processed.
+
+    It stamps the claim with the message id only when
+      - the claim is not finished, and
+      - no other message owns it (first delivery, or a redelivery of the same message).
+    """
+    return (
+        update(Claim)
+        .where(
+            Claim.claim_id == uuid.UUID(claim_id),
+            Claim.status.notin_(FINISHED_STATUSES),
+            or_(Claim.sqs_message_id.is_(None), Claim.sqs_message_id == sqs_message_id),
+        )
+        .values(sqs_message_id=sqs_message_id)
+    )
+
+
 def check_idempotency(claim_id: str, sqs_message_id: str) -> bool:
     """
-    Check if this SQS message has already been processed.
-    Returns True if already processed (should skip).
+    Decide whether this SQS delivery should be skipped. Returns True to skip.
 
-    Atomically sets sqs_message_id where it is currently NULL.
-    rowcount == 0 means a message ID was already present → duplicate.
-    The unique index on sqs_message_id catches concurrent races.
+    A delivery is skipped when the claim is already finished, or when a different
+    message owns the claim. A redelivery of the same message for a claim that never
+    finished (the worker crashed, timed out, or raised) is processed again: that is
+    the retry SQS is offering. Recording the id on first receipt alone would turn
+    every retry into a "duplicate" and leave the claim FAILED for good.
     """
     with Session() as session:
         try:
-            result = session.execute(
-                update(Claim)
-                .where(Claim.claim_id == uuid.UUID(claim_id), Claim.sqs_message_id.is_(None))
-                .values(sqs_message_id=sqs_message_id)
-            )
+            result = session.execute(idempotency_claim_statement(claim_id, sqs_message_id))
             session.commit()
-            return result.rowcount == 0  # 0 → already had a message_id
+            return result.rowcount == 0
         except IntegrityError:
+            # the unique index on sqs_message_id: this message already owns another claim
             session.rollback()
             return True
 

@@ -46,6 +46,19 @@ os.environ["LANGCHAIN_API_KEY"] = LANGSMITH_API_KEY
 os.environ["LANGCHAIN_ENDPOINT"] = LANGSMITH_ENDPOINT
 
 
+def isolate_eval_history(claim_id: str, metadata: dict, claim_history: list) -> list:
+    """
+    For a test-runner claim, keep only the history that belongs to that test case.
+
+    The test cases reuse a handful of members, and every run leaves claims behind.
+    Without this, an earlier run (or another case on the same member) shows up as
+    "claims on the same day" and the case trips a fraud signal it was never meant to.
+    The runner lists the history rows it seeded under `eval_history_claim_ids`.
+    """
+    allowed = {str(claim_id), *(str(c) for c in metadata.get("eval_history_claim_ids", []))}
+    return [h for h in claim_history if str(h.claim_id) in allowed]
+
+
 def process_claim(claim_id: str):
     """
     Process a single claim through the full pipeline.
@@ -100,6 +113,11 @@ def process_claim(claim_id: str):
 
     simulate_failure = bool((claim.claim_metadata or {}).get("simulate_component_failure", False))
     eval_freeze_date = (claim.claim_metadata or {}).get("eval_freeze_date")
+
+    # A test-runner claim is judged on its own seeded history, not on earlier test runs
+    if eval_freeze_date:
+        claim_history = isolate_eval_history(claim_id, claim.claim_metadata or {}, claim_history)
+        ytd_approved = 0.0
 
     # Build initial state
     initial_state: ClaimState = {
@@ -200,7 +218,7 @@ def lambda_handler(event, context):
                 error=str(e),
                 traceback=traceback.format_exc(),
             )
-            raise  # Re-raise so SQS retries (claim stays PROCESSING until retries exhausted)
+            raise  # Re-raise so SQS redelivers; the redelivery is processed again (see check_idempotency)
 
     return {"statusCode": 200, "body": "OK"}
 

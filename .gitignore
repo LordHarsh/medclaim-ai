@@ -57,9 +57,10 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# tests (kept locally, not in repo)
+# tests not in the repo yet: the web tests, and the worker's end-to-end pipeline test,
+# whose fixtures predate the current document format
 web/src/__tests__/
-worker/tests/
+worker/tests/test_pipeline.py
 worker/pytest.ini
 vitest.config.ts
 
