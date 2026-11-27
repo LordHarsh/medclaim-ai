@@ -1,6 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+/**
+ * A claim that is still being decided. The five-step track fills in from the server's event stream
+ * (/api/claims/[id]/stream); when the decision arrives the page reloads its data and shows the result.
+ */
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CircleAlert } from "lucide-react";
+import { Card, LinkButton, Notice } from "@/components/ui";
+import { AGENT_STEPS, stepStates } from "@/components/claim/model";
+import { PipelineTrack, StatusPill } from "@/components/claim/pieces";
 
 interface StepUpdate {
   step: string;
@@ -19,27 +28,7 @@ interface ErrorData {
   message: string;
 }
 
-const STEP_ORDER = [
-  "SUBMITTED",
-  "QUEUED",
-  "DOCUMENT_VERIFICATION",
-  "DOCUMENT_EXTRACTION",
-  "POLICY_ENGINE",
-  "FRAUD_DETECTION",
-  "FINAL_DECISION",
-  "COMPLETED",
-];
-
-const STEP_LABELS: Record<string, string> = {
-  SUBMITTED: "Claim Submitted",
-  QUEUED: "Queued for Processing",
-  DOCUMENT_VERIFICATION: "Document Verification",
-  DOCUMENT_EXTRACTION: "Data Extraction",
-  POLICY_ENGINE: "Policy Evaluation",
-  FRAUD_DETECTION: "Fraud Detection",
-  FINAL_DECISION: "Final Decision",
-  COMPLETED: "Complete",
-};
+const FINISHED = ["COMPLETED", "FAILED", "NEEDS_REUPLOAD"];
 
 interface ClaimProgressProps {
   claimId: string;
@@ -47,24 +36,22 @@ interface ClaimProgressProps {
   initialStep: string;
   onDecision?: (data: DecisionData) => void;
   onError?: (data: ErrorData) => void;
+  /** The gallery draws this screen from fixtures and must not open a stream. */
+  offline?: boolean;
 }
 
-export function ClaimProgress({
-  claimId,
-  initialStatus,
-  initialStep,
-  onDecision,
-  onError,
-}: ClaimProgressProps) {
-  const [steps, setSteps] = useState<StepUpdate[]>([]);
+export function ClaimProgress({ claimId, initialStatus, initialStep, onDecision, onError, offline = false }: ClaimProgressProps) {
+  const router = useRouter();
+  const [message, setMessage] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [status, setStatus] = useState(initialStatus);
   const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<ErrorData | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     // Don't connect if already in a terminal state
-    if (["COMPLETED", "FAILED", "NEEDS_REUPLOAD"].includes(initialStatus)) {
+    if (offline || FINISHED.includes(initialStatus)) {
       return;
     }
 
@@ -77,7 +64,7 @@ export function ClaimProgress({
 
     es.addEventListener("step_update", ((event: MessageEvent) => {
       const data: StepUpdate = JSON.parse(event.data);
-      setSteps((prev) => [...prev, data]);
+      setMessage(data.message || null);
       setCurrentStep(data.step);
       setStatus(data.status);
     }) as EventListener);
@@ -87,13 +74,17 @@ export function ClaimProgress({
       setStatus("COMPLETED");
       setCurrentStep("COMPLETED");
       onDecision?.(data);
+      // The full result (amounts, rules, trace) is on the claim row now; reload the page's data to show it.
+      router.refresh();
     }) as EventListener);
 
     es.addEventListener("error", ((event: MessageEvent) => {
       if (!event.data) return; // Connection error, not a data event
       const data: ErrorData = JSON.parse(event.data);
       setStatus(data.error_code);
+      setError(data);
       onError?.(data);
+      router.refresh();
     }) as EventListener);
 
     es.addEventListener("done", () => {
@@ -108,107 +99,41 @@ export function ClaimProgress({
     return () => {
       es.close();
     };
-  }, [claimId, initialStatus, onDecision, onError]);
+  }, [claimId, initialStatus, onDecision, onError, offline, router]);
 
-  const currentStepIndex = STEP_ORDER.indexOf(currentStep);
+  const states = stepStates({ status, decision: null, current_step: currentStep, trace_json: null });
+  const at = AGENT_STEPS.find((a) => a.step === currentStep);
+  const live = !FINISHED.includes(status);
 
   return (
-    <div className="space-y-6">
-      {/* Connection indicator */}
-      {!["COMPLETED", "FAILED", "NEEDS_REUPLOAD"].includes(status) && (
-        <div className="flex items-center gap-2">
-          <div
-            className={`h-2 w-2 rounded-full ${
-              connected
-                ? "bg-[var(--primary-indigo)] animate-pulse"
-                : "bg-[var(--ink-mute)]"
-            }`}
-          />
-          <span className="caption text-[var(--ink-mute)]">
-            {connected ? "Live tracking active" : "Connecting..."}
+    <Card className="p-5 sm:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <StatusPill outcome={live ? (at ? "running" : "queued") : status === "COMPLETED" ? "running" : "failed"} label={live ? (at ? at.name : "Queued") : status === "COMPLETED" ? "Finishing" : undefined} />
+        {live && (
+          <span className="flex items-center gap-1.5 text-[12px] text-ink-3" role="status">
+            <span className={connected || offline ? "h-2 w-2 animate-pulse rounded-full bg-ok" : "h-2 w-2 rounded-full bg-line-strong"} />
+            {connected || offline ? "Live" : "Connecting"}
           </span>
+        )}
+      </div>
+      <div className="mt-6">
+        <PipelineTrack states={states} size="lg" />
+      </div>
+      <p className="mt-5 min-h-5 text-center text-[13px] text-ink-3" aria-live="polite">
+        {message ?? (live ? "About a minute." : "")}
+      </p>
+      {error && (
+        <div className="mt-4">
+          <Notice tone={error.error_code === "NEEDS_REUPLOAD" ? "stop" : "bad"} icon={<CircleAlert className="h-4 w-4" />} title={error.error_code === "NEEDS_REUPLOAD" ? "Re-upload needed" : "Something went wrong"}>
+            <p>{error.message}</p>
+            <div className="mt-3">
+              <LinkButton href="/claims/new" look="secondary" small>
+                New claim
+              </LinkButton>
+            </div>
+          </Notice>
         </div>
       )}
-
-      {/* Vertical stepper */}
-      <div className="space-y-0">
-        {STEP_ORDER.slice(0, -1).map((step, index) => {
-          const isComplete = index < currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-          const isPending = index > currentStepIndex;
-          const stepMessage = steps.find((s) => s.step === step)?.message;
-
-          return (
-            <div key={step} className="flex items-start gap-4">
-              {/* Step indicator with connecting line */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-300 ${
-                    isComplete
-                      ? "border-[var(--primary-indigo)] bg-[var(--primary-indigo)]"
-                      : isCurrent
-                        ? "border-[var(--primary-indigo)] bg-[var(--canvas)]"
-                        : "border-[var(--hairline)] bg-[var(--canvas)]"
-                  }`}
-                >
-                  {isComplete ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-3.5 w-3.5 text-white"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : isCurrent ? (
-                    <div className="h-2.5 w-2.5 rounded-full bg-[var(--primary-indigo)] animate-pulse" />
-                  ) : (
-                    <div className="h-2 w-2 rounded-full bg-[var(--hairline)]" />
-                  )}
-                </div>
-                {index < STEP_ORDER.length - 2 && (
-                  <div
-                    className={`w-0.5 h-8 transition-colors duration-300 ${
-                      isComplete
-                        ? "bg-[var(--primary-indigo)]"
-                        : "bg-[var(--hairline)]"
-                    }`}
-                  />
-                )}
-              </div>
-
-              {/* Step content */}
-              <div className="flex-1 pb-4 -mt-0.5">
-                <p
-                  className={`body-md transition-colors ${
-                    isComplete
-                      ? "text-[var(--primary-indigo)]"
-                      : isCurrent
-                        ? "text-[var(--ink)]"
-                        : "text-[var(--ink-mute)]"
-                  }`}
-                >
-                  {STEP_LABELS[step] || step}
-                </p>
-                {(isCurrent || isComplete) && stepMessage && (
-                  <p className="mt-0.5 micro text-[var(--ink-mute)]">
-                    {stepMessage}
-                  </p>
-                )}
-                {isCurrent && !isPending && (
-                  <p className="mt-0.5 micro text-[var(--primary-indigo)] animate-pulse">
-                    In progress...
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    </Card>
   );
 }
