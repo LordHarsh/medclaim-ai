@@ -124,6 +124,26 @@ export default async function DashboardPage() {
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Where to go without documents of your own */}
+        <div className="mb-8 rounded-xl border border-[var(--hairline)] bg-[var(--canvas)] px-6 py-5 shadow-level-1">
+          <h2 className="heading-sm text-[var(--ink)]">Looking around?</h2>
+          <p className="mt-1 body-md text-[var(--ink-mute)]">
+            You do not need medical documents to see the pipeline work. The test runner puts twelve prepared claims
+            through the live system, and the operations dashboard shows the full trace of every claim it has decided.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/admin/eval" className="btn-pill btn-pill-primary inline-flex items-center text-sm">
+              Run a prepared claim
+            </Link>
+            <Link href="/admin" className="btn-pill btn-pill-secondary inline-flex items-center text-sm">
+              Operations dashboard
+            </Link>
+            <Link href="/demo" className="btn-pill btn-pill-secondary inline-flex items-center text-sm">
+              Step-by-step replay
+            </Link>
+          </div>
+        </div>
+
         {/* Stats Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
           <div className="bg-[var(--canvas)] rounded-xl border border-[var(--hairline)] shadow-level-1 p-6">

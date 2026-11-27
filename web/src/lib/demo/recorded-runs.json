@@ -1,0 +1,1575 @@
+{
+ "TC001": {
+  "recorded_at": "2026-06-01T05:03:25.133Z",
+  "duration_ms": 38482,
+  "status": "NEEDS_REUPLOAD",
+  "decision": null,
+  "approved_amount": null,
+  "confidence_score": null,
+  "fraud_score": null,
+  "rejection_reasons": [],
+  "error_message": "You uploaded documents classified as [PRESCRIPTION], but a CONSULTATION claim requires [PRESCRIPTION, HOSPITAL_BILL]. Please upload your HOSPITAL_BILL.",
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": false,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC001/another_prescription.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Rajesh Kumar",
+        "classification_confidence": 1
+       },
+       {
+        "s3_key": "test-cases/TC001/dr_sharma_prescription.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Rajesh Kumar",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 1,
+      "error_message": "You uploaded documents classified as [PRESCRIPTION], but a CONSULTATION claim requires [PRESCRIPTION, HOSPITAL_BILL]. Please upload your HOSPITAL_BILL.",
+      "patient_mismatch": null,
+      "early_stop_reason": "WRONG_DOCUMENTS",
+      "should_stop_early": true,
+      "missing_required_types": [
+       "HOSPITAL_BILL"
+      ]
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    }
+   ],
+   "degraded": false,
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ },
+ "TC004": {
+  "recorded_at": "2026-06-01T05:03:31.899Z",
+  "duration_ms": 74753,
+  "status": "COMPLETED",
+  "decision": "APPROVED",
+  "approved_amount": 1350.0,
+  "confidence_score": 0.85,
+  "fraud_score": 0.32,
+  "rejection_reasons": [],
+  "error_message": null,
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": true,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC004/hospital_bill_tc004.jpg",
+        "is_readable": true,
+        "detected_type": "HOSPITAL_BILL",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Rajesh Kumar",
+        "classification_confidence": 1
+       },
+       {
+        "s3_key": "test-cases/TC004/prescription_tc004.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Rajesh Kumar",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 0.95,
+      "error_message": null,
+      "patient_mismatch": null,
+      "early_stop_reason": null,
+      "should_stop_early": false,
+      "missing_required_types": []
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "lab_report": null,
+      "prescription": {
+       "date": "2024-11-01",
+       "diagnosis": [
+        "Viral Fever",
+        "Viral Fever (mild fever)"
+       ],
+       "medicines": [
+        {
+         "name": "Paracetamol",
+         "dosage": null,
+         "duration": null,
+         "frequency": "1-1-1"
+        },
+        {
+         "name": "Vitamin C",
+         "dosage": "500mg",
+         "duration": "0 days",
+         "frequency": null
+        },
+        {
+         "name": "Paracetamol",
+         "dosage": "650mg",
+         "duration": "7 days",
+         "frequency": "0-0-1"
+        }
+       ],
+       "treatment": null,
+       "doctor_name": "DR. ARUN SHARMA",
+       "patient_age": 39,
+       "patient_name": "Rajesh Kumar",
+       "hospital_name": "City Clinic",
+       "tests_ordered": [
+        "CBC",
+        "Die",
+        "Dengue NS1 Antigen"
+       ],
+       "patient_gender": "Male",
+       "field_confidences": {
+        "date": 1,
+        "diagnosis": 1,
+        "doctor_name": 1,
+        "patient_age": 1,
+        "patient_name": 1,
+        "hospital_name": 1,
+        "tests_ordered": 0.9,
+        "patient_gender": 1,
+        "medicines_0_name": 1,
+        "medicines_1_name": 1,
+        "medicines_2_name": 1,
+        "medicines_0_dosage": 0.8,
+        "medicines_1_dosage": 1,
+        "medicines_2_dosage": 1,
+        "doctor_registration": 1,
+        "medicines_0_duration": 0.7,
+        "medicines_1_duration": 1,
+        "medicines_2_duration": 1,
+        "doctor_specialization": 1,
+        "medicines_0_frequency": 1,
+        "medicines_1_frequency": 0.9,
+        "medicines_2_frequency": 1
+       },
+       "doctor_registration": "KA/456782J15",
+       "doctor_specialization": "MD (Internal Medicine)"
+      },
+      "hospital_bill": {
+       "date": "2024-11-01",
+       "total": 1500,
+       "line_items": [
+        {
+         "amount": 1000,
+         "description": "1"
+        },
+        {
+         "amount": 300,
+         "description": "CBC Test"
+        },
+        {
+         "amount": 200,
+         "description": "Dengue NS1 Test"
+        }
+       ],
+       "bill_number": "CMC/20A/08321",
+       "patient_name": "Rajesh Kumar",
+       "hospital_name": "CITY CLINIC, BENGALURU",
+       "field_confidences": {
+        "date": 1,
+        "total": 1,
+        "line_items": {
+         "0": 1,
+         "1": 1,
+         "2": 1
+        },
+        "bill_number": 1,
+        "patient_name": 1,
+        "hospital_name": 1
+       }
+      },
+      "pharmacy_bill": null,
+      "extraction_confidence": 0.95
+     },
+     "summary": "Data extraction completed",
+     "step_name": "DOCUMENT_EXTRACTION",
+     "step_order": 2
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "eligible": true,
+      "warnings": [],
+      "approved_amount": 1350,
+      "rule_evaluations": [
+       {
+        "passed": true,
+        "details": "Member exists and policy is active",
+        "blocking": false,
+        "rule_name": "MEMBER_ELIGIBILITY"
+       },
+       {
+        "passed": true,
+        "details": "Submitted 1 days after treatment (limit: 30)",
+        "blocking": false,
+        "rule_name": "SUBMISSION_DEADLINE"
+       },
+       {
+        "passed": true,
+        "details": "Claimed amount Rs. 1500.0 vs minimum Rs. 500.0",
+        "blocking": false,
+        "rule_name": "MINIMUM_AMOUNT"
+       },
+       {
+        "passed": true,
+        "details": "Enrolled 214 days (minimum: 30)",
+        "blocking": false,
+        "rule_name": "INITIAL_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Diagnosis does not match any waiting period condition",
+        "blocking": false,
+        "rule_name": "CONDITION_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Treatment not excluded under policy",
+        "blocking": false,
+        "rule_name": "EXCLUSION_CHECK"
+       },
+       {
+        "passed": true,
+        "details": "Pre-auth check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PRE_AUTHORIZATION"
+       },
+       {
+        "passed": true,
+        "details": "Claimed Rs. 1500.0 vs per-claim limit Rs. 5000.0",
+        "blocking": false,
+        "rule_name": "PER_CLAIM_LIMIT"
+       },
+       {
+        "passed": true,
+        "details": "Procedure coverage check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PROCEDURE_COVERAGE"
+       },
+       {
+        "passed": true,
+        "details": "Eligible: Rs. 1500.0, Network discount: 0% (Rs. 0.00), Co-pay: 10.0% (Rs. 150.00), Final: Rs. 1350.0",
+        "blocking": false,
+        "rule_name": "AMOUNT_CALCULATION"
+       }
+      ],
+      "rejection_reasons": [],
+      "decision_suggestion": "APPROVED",
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 150,
+       "copay_percent": 10,
+       "discount_amount": 0,
+       "eligible_amount": 1500,
+       "original_amount": 1500,
+       "amount_after_copay": 1350,
+       "amount_after_discount": 1500,
+       "final_approved_amount": 1350,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      }
+     },
+     "summary": "Policy evaluation completed",
+     "step_name": "POLICY_ENGINE",
+     "step_order": 3
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "signals": [
+       {
+        "weight": 1,
+        "evidence": "3 claims already filed for 2024-11-01",
+        "severity": 0.8,
+        "description": "Member has 3 prior claims on the same day (limit: 2)",
+        "signal_type": "SAME_DAY_CLAIMS_EXCEEDED"
+       }
+      ],
+      "risk_level": "MEDIUM",
+      "fraud_score": 0.32,
+      "requires_manual_review": false
+     },
+     "summary": "Fraud detection completed",
+     "step_name": "FRAUD_DETECTION",
+     "step_order": 4
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "decision": "APPROVED",
+      "ops_summary": "Claim approved for Rs. 1,350 (original Rs. 1,500 minus 10% copay). Low fraud score (0.32) with one signal flagged for same-day claims volume, confidence 0.85.",
+      "user_message": "Your claim has been approved for Rs. 1,350. This amount reflects the eligible claim amount after applying your 10% copay deduction. Your claim was processed successfully and meets all policy requirements.",
+      "approved_amount": 1350,
+      "recommendations": [
+       "Fraud score elevated (0.32)"
+      ],
+      "confidence_score": 0.85,
+      "rejection_reasons": [],
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 150,
+       "copay_percent": 10,
+       "discount_amount": 0,
+       "eligible_amount": 1500,
+       "original_amount": 1500,
+       "amount_after_copay": 1350,
+       "amount_after_discount": 1500,
+       "final_approved_amount": 1350,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      },
+      "confidence_deductions": [
+       {
+        "reason": "elevated fraud score (0.320)",
+        "deduction": 0.1
+       }
+      ]
+     },
+     "summary": "Final decision rendered",
+     "step_name": "FINAL_DECISION",
+     "step_order": 5
+    }
+   ],
+   "degraded": false,
+   "final_decision": {
+    "decision": "APPROVED",
+    "ops_summary": "Claim approved for Rs. 1,350 (original Rs. 1,500 minus 10% copay). Low fraud score (0.32) with one signal flagged for same-day claims volume, confidence 0.85.",
+    "user_message": "Your claim has been approved for Rs. 1,350. This amount reflects the eligible claim amount after applying your 10% copay deduction. Your claim was processed successfully and meets all policy requirements.",
+    "approved_amount": 1350,
+    "recommendations": [
+     "Fraud score elevated (0.32)"
+    ],
+    "confidence_score": 0.85,
+    "rejection_reasons": [],
+    "line_item_decisions": null,
+    "calculation_breakdown": {
+     "copay_amount": 150,
+     "copay_percent": 10,
+     "discount_amount": 0,
+     "eligible_amount": 1500,
+     "original_amount": 1500,
+     "amount_after_copay": 1350,
+     "amount_after_discount": 1500,
+     "final_approved_amount": 1350,
+     "network_discount_applied": false,
+     "network_discount_percent": 0
+    },
+    "confidence_deductions": [
+     {
+      "reason": "elevated fraud score (0.320)",
+      "deduction": 0.1
+     }
+    ]
+   },
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ },
+ "TC005": {
+  "recorded_at": "2026-06-01T05:03:35.859Z",
+  "duration_ms": 58196,
+  "status": "COMPLETED",
+  "decision": "REJECTED",
+  "approved_amount": null,
+  "confidence_score": 0.95,
+  "fraud_score": 0.0,
+  "rejection_reasons": [
+   "WAITING_PERIOD"
+  ],
+  "error_message": null,
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": true,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC005/hospital_bill_tc005.jpg",
+        "is_readable": true,
+        "detected_type": "HOSPITAL_BILL",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Vikram Joshi",
+        "classification_confidence": 1
+       },
+       {
+        "s3_key": "test-cases/TC005/prescription_tc005.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Vikram Joshi",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 0.95,
+      "error_message": null,
+      "patient_mismatch": null,
+      "early_stop_reason": null,
+      "should_stop_early": false,
+      "missing_required_types": []
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "lab_report": null,
+      "prescription": {
+       "date": "2024-10-15",
+       "diagnosis": [
+        "Type 2 Diabetes Mellitus (T2DM)",
+        "Nagneus",
+        "HbA1c: 8.2%"
+       ],
+       "medicines": [
+        {
+         "name": "Metformin",
+         "dosage": "500mg",
+         "duration": "30 days",
+         "frequency": "1-0-1"
+        },
+        {
+         "name": "Glimepiride",
+         "dosage": "1mg",
+         "duration": null,
+         "frequency": "1-0"
+        }
+       ],
+       "treatment": "Diet control, regular exercise, monitor fasting sugar",
+       "doctor_name": "Dr. Sunil Mehta",
+       "patient_age": 42,
+       "patient_name": "Vikram Joshi",
+       "hospital_name": "Mehta Diabetes & Thy'oid Clinic",
+       "tests_ordered": [
+        "FBS",
+        "PPBS",
+        "HbA1c"
+       ],
+       "patient_gender": null,
+       "field_confidences": {
+        "date": 1,
+        "diagnosis": 0.9,
+        "medicines": 1,
+        "treatment": 0.95,
+        "doctor_name": 1,
+        "patient_age": 1,
+        "patient_name": 1,
+        "hospital_name": 1,
+        "tests_ordered": 0.95,
+        "patient_gender": null,
+        "doctor_registration": 1,
+        "doctor_specialization": 1
+       },
+       "doctor_registration": "GJ/56789/2014",
+       "doctor_specialization": "Endocrinology"
+      },
+      "hospital_bill": {
+       "date": "2024-10-15",
+       "total": 3000,
+       "line_items": [
+        {
+         "amount": 500,
+         "description": "Consultation Fee"
+        },
+        {
+         "amount": 1500,
+         "description": "HbA1c Test (Specialist)"
+        },
+        {
+         "amount": 200,
+         "description": "Fasting Blood Sugar Test"
+        },
+        {
+         "amount": 300,
+         "description": "Post-Prardial Blood Sugar"
+        },
+        {
+         "amount": 500,
+         "description": "Urine Routine"
+        }
+       ],
+       "bill_number": "MDTC/24/03456",
+       "patient_name": "Vikram Joshi",
+       "hospital_name": "MEHTA DIABETES & THYROID CLINIC",
+       "field_confidences": {
+        "date": 1,
+        "total": 1,
+        "line_items": 1,
+        "bill_number": 1,
+        "patient_name": 1,
+        "hospital_name": 1
+       }
+      },
+      "pharmacy_bill": null,
+      "extraction_confidence": 0.95
+     },
+     "summary": "Data extraction completed",
+     "step_name": "DOCUMENT_EXTRACTION",
+     "step_order": 2
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "eligible": false,
+      "warnings": [],
+      "approved_amount": null,
+      "rule_evaluations": [
+       {
+        "passed": true,
+        "details": "Member exists and policy is active",
+        "blocking": false,
+        "rule_name": "MEMBER_ELIGIBILITY"
+       },
+       {
+        "passed": true,
+        "details": "Submitted 1 days after treatment (limit: 30)",
+        "blocking": false,
+        "rule_name": "SUBMISSION_DEADLINE"
+       },
+       {
+        "passed": true,
+        "details": "Claimed amount Rs. 3000.0 vs minimum Rs. 500.0",
+        "blocking": false,
+        "rule_name": "MINIMUM_AMOUNT"
+       },
+       {
+        "passed": true,
+        "details": "Enrolled 44 days (minimum: 30)",
+        "blocking": false,
+        "rule_name": "INITIAL_WAITING_PERIOD"
+       },
+       {
+        "passed": false,
+        "details": "diabetes has 90-day waiting period. Member enrolled 44 days. Eligible from 2024-11-30.",
+        "blocking": true,
+        "rule_name": "CONDITION_WAITING_PERIOD"
+       }
+      ],
+      "rejection_reasons": [
+       "WAITING_PERIOD"
+      ],
+      "decision_suggestion": "REJECTED",
+      "line_item_decisions": null,
+      "calculation_breakdown": null
+     },
+     "summary": "Policy evaluation completed",
+     "step_name": "POLICY_ENGINE",
+     "step_order": 3
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "signals": [],
+      "risk_level": "LOW",
+      "fraud_score": 0,
+      "requires_manual_review": false
+     },
+     "summary": "Fraud detection completed",
+     "step_name": "FRAUD_DETECTION",
+     "step_order": 4
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "decision": "REJECTED",
+      "ops_summary": "Claim rejected due to waiting period violation - diabetes condition requires 90 days, member enrolled 44 days ago. High confidence decision (0.95), no fraud concerns.",
+      "user_message": "Your claim has been rejected because diabetes-related treatments have a 90-day waiting period, and you enrolled only 44 days ago. You will be eligible for coverage of this condition starting from November 30, 2024.",
+      "approved_amount": null,
+      "recommendations": [],
+      "confidence_score": 0.95,
+      "rejection_reasons": [
+       "WAITING_PERIOD"
+      ],
+      "line_item_decisions": null,
+      "calculation_breakdown": null,
+      "confidence_deductions": []
+     },
+     "summary": "Final decision rendered",
+     "step_name": "FINAL_DECISION",
+     "step_order": 5
+    }
+   ],
+   "degraded": false,
+   "final_decision": {
+    "decision": "REJECTED",
+    "ops_summary": "Claim rejected due to waiting period violation - diabetes condition requires 90 days, member enrolled 44 days ago. High confidence decision (0.95), no fraud concerns.",
+    "user_message": "Your claim has been rejected because diabetes-related treatments have a 90-day waiting period, and you enrolled only 44 days ago. You will be eligible for coverage of this condition starting from November 30, 2024.",
+    "approved_amount": null,
+    "recommendations": [],
+    "confidence_score": 0.95,
+    "rejection_reasons": [
+     "WAITING_PERIOD"
+    ],
+    "line_item_decisions": null,
+    "calculation_breakdown": null,
+    "confidence_deductions": []
+   },
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ },
+ "TC006": {
+  "recorded_at": "2026-06-01T05:03:40.355Z",
+  "duration_ms": 31364,
+  "status": "COMPLETED",
+  "decision": "PARTIAL",
+  "approved_amount": 8000.0,
+  "confidence_score": 0.95,
+  "fraud_score": 0.0,
+  "rejection_reasons": [],
+  "error_message": null,
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": true,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC006/dental_bill_tc006.jpg",
+        "is_readable": true,
+        "detected_type": "HOSPITAL_BILL",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Priya Singh",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 0.95,
+      "error_message": null,
+      "patient_mismatch": null,
+      "early_stop_reason": null,
+      "should_stop_early": false,
+      "missing_required_types": []
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "lab_report": null,
+      "prescription": null,
+      "hospital_bill": {
+       "date": "2024-10-15",
+       "total": 12000,
+       "line_items": [
+        {
+         "amount": 8000,
+         "description": "Root Canal"
+        },
+        {
+         "amount": 4000,
+         "description": "Teeth Whitening"
+        }
+       ],
+       "bill_number": null,
+       "patient_name": "Priya Singh",
+       "hospital_name": "SMILE DENTAL CLINIC",
+       "field_confidences": {
+        "date": 1,
+        "total": 1,
+        "line_items": 1,
+        "bill_number": null,
+        "patient_name": 1,
+        "hospital_name": 1
+       }
+      },
+      "pharmacy_bill": null,
+      "extraction_confidence": 0.95
+     },
+     "summary": "Data extraction completed",
+     "step_name": "DOCUMENT_EXTRACTION",
+     "step_order": 2
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "eligible": true,
+      "warnings": [],
+      "approved_amount": 8000,
+      "rule_evaluations": [
+       {
+        "passed": true,
+        "details": "Member exists and policy is active",
+        "blocking": false,
+        "rule_name": "MEMBER_ELIGIBILITY"
+       },
+       {
+        "passed": true,
+        "details": "Submitted 1 days after treatment (limit: 30)",
+        "blocking": false,
+        "rule_name": "SUBMISSION_DEADLINE"
+       },
+       {
+        "passed": true,
+        "details": "Claimed amount Rs. 12000.0 vs minimum Rs. 500.0",
+        "blocking": false,
+        "rule_name": "MINIMUM_AMOUNT"
+       },
+       {
+        "passed": true,
+        "details": "Enrolled 197 days (minimum: 30)",
+        "blocking": false,
+        "rule_name": "INITIAL_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "No diagnosis available for classification",
+        "blocking": false,
+        "rule_name": "CONDITION_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "No diagnosis available for exclusion check",
+        "blocking": false,
+        "rule_name": "EXCLUSION_CHECK"
+       },
+       {
+        "passed": true,
+        "details": "Pre-auth check not applicable for DENTAL",
+        "blocking": false,
+        "rule_name": "PRE_AUTHORIZATION"
+       },
+       {
+        "passed": true,
+        "details": "Per-claim limit not applied to DENTAL (handled by procedure coverage and sub_limit)",
+        "blocking": false,
+        "rule_name": "PER_CLAIM_LIMIT"
+       },
+       {
+        "passed": true,
+        "details": "Partial coverage: Rs. 8000.0 of Rs. 12000.0 eligible",
+        "blocking": false,
+        "rule_name": "PROCEDURE_COVERAGE"
+       },
+       {
+        "passed": true,
+        "details": "Eligible: Rs. 8000.0, Network discount: 0% (Rs. 0.00), Co-pay: 0.0% (Rs. 0.00), Final: Rs. 8000.0",
+        "blocking": false,
+        "rule_name": "AMOUNT_CALCULATION"
+       }
+      ],
+      "rejection_reasons": [],
+      "decision_suggestion": "PARTIAL",
+      "line_item_decisions": [
+       {
+        "amount": 8000,
+        "reason": "Covered procedure",
+        "approved": true,
+        "description": "Root Canal"
+       },
+       {
+        "amount": 4000,
+        "reason": "Excluded procedure: Teeth Whitening",
+        "approved": false,
+        "description": "Teeth Whitening"
+       }
+      ],
+      "calculation_breakdown": {
+       "copay_amount": 0,
+       "copay_percent": 0,
+       "discount_amount": 0,
+       "eligible_amount": 8000,
+       "original_amount": 12000,
+       "amount_after_copay": 8000,
+       "amount_after_discount": 8000,
+       "final_approved_amount": 8000,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      }
+     },
+     "summary": "Policy evaluation completed",
+     "step_name": "POLICY_ENGINE",
+     "step_order": 3
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "signals": [],
+      "risk_level": "LOW",
+      "fraud_score": 0,
+      "requires_manual_review": false
+     },
+     "summary": "Fraud detection completed",
+     "step_name": "FRAUD_DETECTION",
+     "step_order": 4
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "decision": "PARTIAL",
+      "ops_summary": "Partial approval: Rs. 8,000 approved from Rs. 12,000 claimed (66.7% approval rate). High confidence decision (0.95) with no fraud signals or system issues detected.",
+      "user_message": "Your claim has been partially approved for Rs. 8,000 out of the Rs. 12,000 claimed amount. The approved amount is based on your policy coverage limits and eligible expenses under your plan.",
+      "approved_amount": 8000,
+      "recommendations": [],
+      "confidence_score": 0.95,
+      "rejection_reasons": [],
+      "line_item_decisions": [
+       {
+        "amount": 8000,
+        "reason": "Covered procedure",
+        "approved": true,
+        "description": "Root Canal"
+       },
+       {
+        "amount": 4000,
+        "reason": "Excluded procedure: Teeth Whitening",
+        "approved": false,
+        "description": "Teeth Whitening"
+       }
+      ],
+      "calculation_breakdown": {
+       "copay_amount": 0,
+       "copay_percent": 0,
+       "discount_amount": 0,
+       "eligible_amount": 8000,
+       "original_amount": 12000,
+       "amount_after_copay": 8000,
+       "amount_after_discount": 8000,
+       "final_approved_amount": 8000,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      },
+      "confidence_deductions": []
+     },
+     "summary": "Final decision rendered",
+     "step_name": "FINAL_DECISION",
+     "step_order": 5
+    }
+   ],
+   "degraded": false,
+   "final_decision": {
+    "decision": "PARTIAL",
+    "ops_summary": "Partial approval: Rs. 8,000 approved from Rs. 12,000 claimed (66.7% approval rate). High confidence decision (0.95) with no fraud signals or system issues detected.",
+    "user_message": "Your claim has been partially approved for Rs. 8,000 out of the Rs. 12,000 claimed amount. The approved amount is based on your policy coverage limits and eligible expenses under your plan.",
+    "approved_amount": 8000,
+    "recommendations": [],
+    "confidence_score": 0.95,
+    "rejection_reasons": [],
+    "line_item_decisions": [
+     {
+      "amount": 8000,
+      "reason": "Covered procedure",
+      "approved": true,
+      "description": "Root Canal"
+     },
+     {
+      "amount": 4000,
+      "reason": "Excluded procedure: Teeth Whitening",
+      "approved": false,
+      "description": "Teeth Whitening"
+     }
+    ],
+    "calculation_breakdown": {
+     "copay_amount": 0,
+     "copay_percent": 0,
+     "discount_amount": 0,
+     "eligible_amount": 8000,
+     "original_amount": 12000,
+     "amount_after_copay": 8000,
+     "amount_after_discount": 8000,
+     "final_approved_amount": 8000,
+     "network_discount_applied": false,
+     "network_discount_percent": 0
+    },
+    "confidence_deductions": []
+   },
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ },
+ "TC009": {
+  "recorded_at": "2026-06-01T05:04:18.392Z",
+  "duration_ms": 63062,
+  "status": "COMPLETED",
+  "decision": "MANUAL_REVIEW",
+  "approved_amount": null,
+  "confidence_score": 0.85,
+  "fraud_score": 0.572,
+  "rejection_reasons": [],
+  "error_message": null,
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": true,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC009/hospital_bill_tc009.jpg",
+        "is_readable": true,
+        "detected_type": "HOSPITAL_BILL",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Ravi Menon",
+        "classification_confidence": 1
+       },
+       {
+        "s3_key": "test-cases/TC009/prescription_tc009.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 1,
+        "quality_issues": [],
+        "patient_name_found": "Ravi Menon",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 0.95,
+      "error_message": null,
+      "patient_mismatch": null,
+      "early_stop_reason": null,
+      "should_stop_early": false,
+      "missing_required_types": []
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "lab_report": null,
+      "prescription": {
+       "date": null,
+       "diagnosis": [
+        "Severe Severe throbbing headache R side., photophobiie, Migraine without aura",
+        "Migroins: Migraine without aura"
+       ],
+       "medicines": [
+        {
+         "name": "Sumatriptan",
+         "dosage": "50mg",
+         "duration": "at ot of hendache (max 2 day)",
+         "frequency": "SOS"
+        },
+        {
+         "name": "Propanolol",
+         "dosage": "40mg",
+         "duration": "x days (prophylaxcis)",
+         "frequency": "1-0-1"
+        },
+        {
+         "name": "Donperidone",
+         "dosage": "10mg",
+         "duration": null,
+         "frequency": null
+        },
+        {
+         "name": "Domperidone",
+         "dosage": "10mg",
+         "duration": "for naussa",
+         "frequency": "SOS"
+        }
+       ],
+       "treatment": "Review in 2 weeks. Maintain headche diary. Avrigers (bright light, stress, irregular sleep).",
+       "doctor_name": "Dr. Sameer Khan",
+       "patient_age": 38,
+       "patient_name": "Ravi Menon",
+       "hospital_name": "NeuroLife Clinic",
+       "tests_ordered": [],
+       "patient_gender": "M",
+       "field_confidences": {
+        "date": null,
+        "diagnosis": 0.9,
+        "medicines": 0.9,
+        "treatment": 0.8,
+        "doctor_name": 1,
+        "patient_age": 1,
+        "patient_name": 1,
+        "hospital_name": 1,
+        "tests_ordered": 1,
+        "patient_gender": 1,
+        "doctor_registration": 1,
+        "doctor_specialization": 1
+       },
+       "doctor_registration": "MH/89012/2015",
+       "doctor_specialization": "MBBS, DBS, DM, DM Neurology"
+      },
+      "hospital_bill": {
+       "date": "2024-10-30",
+       "total": 4800,
+       "line_items": [
+        {
+         "amount": 2000,
+         "description": "Neurology Consutation (Specialist)"
+        },
+        {
+         "amount": 1500,
+         "description": "EEG (Electroeneecphalogram) | Male"
+        },
+        {
+         "amount": 1500,
+         "description": "Medicines (Electroeepmalogram )"
+        },
+        {
+         "amount": 1300,
+         "description": "Medicines (Sumatan, Propranolol, Domperidone)"
+        }
+       ],
+       "bill_number": "NLC/202/0934",
+       "patient_name": "Ravi Menon",
+       "hospital_name": "NEUROLIFE CLINIC",
+       "field_confidences": {
+        "date": 1,
+        "total": 1,
+        "line_items": 1,
+        "bill_number": 1,
+        "patient_name": 1,
+        "hospital_name": 1
+       }
+      },
+      "pharmacy_bill": null,
+      "extraction_confidence": 0.95
+     },
+     "summary": "Data extraction completed",
+     "step_name": "DOCUMENT_EXTRACTION",
+     "step_order": 2
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "eligible": true,
+      "warnings": [],
+      "approved_amount": 4320,
+      "rule_evaluations": [
+       {
+        "passed": true,
+        "details": "Member exists and policy is active",
+        "blocking": false,
+        "rule_name": "MEMBER_ELIGIBILITY"
+       },
+       {
+        "passed": true,
+        "details": "Submitted 1 days after treatment (limit: 30)",
+        "blocking": false,
+        "rule_name": "SUBMISSION_DEADLINE"
+       },
+       {
+        "passed": true,
+        "details": "Claimed amount Rs. 4800.0 vs minimum Rs. 500.0",
+        "blocking": false,
+        "rule_name": "MINIMUM_AMOUNT"
+       },
+       {
+        "passed": true,
+        "details": "Enrolled 212 days (minimum: 30)",
+        "blocking": false,
+        "rule_name": "INITIAL_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Diagnosis does not match any waiting period condition",
+        "blocking": false,
+        "rule_name": "CONDITION_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Treatment not excluded under policy",
+        "blocking": false,
+        "rule_name": "EXCLUSION_CHECK"
+       },
+       {
+        "passed": true,
+        "details": "Pre-auth check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PRE_AUTHORIZATION"
+       },
+       {
+        "passed": true,
+        "details": "Claimed Rs. 4800.0 vs per-claim limit Rs. 5000.0",
+        "blocking": false,
+        "rule_name": "PER_CLAIM_LIMIT"
+       },
+       {
+        "passed": true,
+        "details": "Procedure coverage check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PROCEDURE_COVERAGE"
+       },
+       {
+        "passed": true,
+        "details": "Eligible: Rs. 4800.0, Network discount: 0% (Rs. 0.00), Co-pay: 10.0% (Rs. 480.00), Final: Rs. 4320.0",
+        "blocking": false,
+        "rule_name": "AMOUNT_CALCULATION"
+       }
+      ],
+      "rejection_reasons": [],
+      "decision_suggestion": "APPROVED",
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 480,
+       "copay_percent": 10,
+       "discount_amount": 0,
+       "eligible_amount": 4800,
+       "original_amount": 4800,
+       "amount_after_copay": 4320,
+       "amount_after_discount": 4800,
+       "final_approved_amount": 4320,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      }
+     },
+     "summary": "Policy evaluation completed",
+     "step_name": "POLICY_ENGINE",
+     "step_order": 3
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "signals": [
+       {
+        "weight": 1,
+        "evidence": "4 claims already filed for 2024-10-30",
+        "severity": 0.8,
+        "description": "Member has 4 prior claims on the same day (limit: 2)",
+        "signal_type": "SAME_DAY_CLAIMS_EXCEEDED"
+       },
+       {
+        "weight": 0.9,
+        "evidence": "Providers: wellness center, city clinic a, city clinic b",
+        "severity": 0.7,
+        "description": "3 distinct providers on the same day",
+        "signal_type": "MULTIPLE_PROVIDERS_SAME_DAY"
+       }
+      ],
+      "risk_level": "HIGH",
+      "fraud_score": 0.572,
+      "requires_manual_review": true
+     },
+     "summary": "Fraud detection completed",
+     "step_name": "FRAUD_DETECTION",
+     "step_order": 4
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "decision": "MANUAL_REVIEW",
+      "ops_summary": "Claim flagged for manual review due to fraud signals: same-day claims exceeded threshold and multiple providers on same day. Fraud score 0.572, eligible amount Rs. 4,320 after 10% copay.",
+      "user_message": "Your claim for Rs. 4,800 requires additional review and verification before a final decision can be made. Our team will examine your claim details and contact you within the next few business days if any additional information is needed.",
+      "approved_amount": null,
+      "recommendations": [
+       "Fraud score elevated (0.57)"
+      ],
+      "confidence_score": 0.85,
+      "rejection_reasons": [],
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 480,
+       "copay_percent": 10,
+       "discount_amount": 0,
+       "eligible_amount": 4800,
+       "original_amount": 4800,
+       "amount_after_copay": 4320,
+       "amount_after_discount": 4800,
+       "final_approved_amount": 4320,
+       "network_discount_applied": false,
+       "network_discount_percent": 0
+      },
+      "confidence_deductions": [
+       {
+        "reason": "elevated fraud score (0.572)",
+        "deduction": 0.1
+       }
+      ]
+     },
+     "summary": "Final decision rendered",
+     "step_name": "FINAL_DECISION",
+     "step_order": 5
+    }
+   ],
+   "degraded": false,
+   "final_decision": {
+    "decision": "MANUAL_REVIEW",
+    "ops_summary": "Claim flagged for manual review due to fraud signals: same-day claims exceeded threshold and multiple providers on same day. Fraud score 0.572, eligible amount Rs. 4,320 after 10% copay.",
+    "user_message": "Your claim for Rs. 4,800 requires additional review and verification before a final decision can be made. Our team will examine your claim details and contact you within the next few business days if any additional information is needed.",
+    "approved_amount": null,
+    "recommendations": [
+     "Fraud score elevated (0.57)"
+    ],
+    "confidence_score": 0.85,
+    "rejection_reasons": [],
+    "line_item_decisions": null,
+    "calculation_breakdown": {
+     "copay_amount": 480,
+     "copay_percent": 10,
+     "discount_amount": 0,
+     "eligible_amount": 4800,
+     "original_amount": 4800,
+     "amount_after_copay": 4320,
+     "amount_after_discount": 4800,
+     "final_approved_amount": 4320,
+     "network_discount_applied": false,
+     "network_discount_percent": 0
+    },
+    "confidence_deductions": [
+     {
+      "reason": "elevated fraud score (0.572)",
+      "deduction": 0.1
+     }
+    ]
+   },
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ },
+ "TC010": {
+  "recorded_at": "2026-06-01T05:04:56.734Z",
+  "duration_ms": 46876,
+  "status": "COMPLETED",
+  "decision": "APPROVED",
+  "approved_amount": 3240.0,
+  "confidence_score": 0.85,
+  "fraud_score": 0.36,
+  "rejection_reasons": [],
+  "error_message": null,
+  "trace": {
+   "steps": [
+    {
+     "status": "COMPLETED",
+     "details": {
+      "verified": true,
+      "documents": [
+       {
+        "s3_key": "test-cases/TC010/hospital_bill_tc010.jpg",
+        "is_readable": true,
+        "detected_type": "HOSPITAL_BILL",
+        "quality_score": 0.9,
+        "quality_issues": [
+         "STAMP_OVER_TEXT"
+        ],
+        "patient_name_found": "Deepak SHAH",
+        "classification_confidence": 1
+       },
+       {
+        "s3_key": "test-cases/TC010/prescription_tc010.jpg",
+        "is_readable": true,
+        "detected_type": "PRESCRIPTION",
+        "quality_score": 0.9,
+        "quality_issues": [
+         "STAMP_OVER_TEXT"
+        ],
+        "patient_name_found": "DEEPAK SHAH",
+        "classification_confidence": 1
+       }
+      ],
+      "confidence": 0.95,
+      "error_message": null,
+      "patient_mismatch": null,
+      "early_stop_reason": null,
+      "should_stop_early": false,
+      "missing_required_types": []
+     },
+     "summary": "Document verification completed",
+     "step_name": "DOCUMENT_VERIFICATION",
+     "step_order": 1
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "lab_report": null,
+      "prescription": {
+       "date": "2024-11-03",
+       "diagnosis": [
+        "ACUTE BRONCHITIS"
+       ],
+       "medicines": [
+        {
+         "name": "Cap Amoxicillin",
+         "dosage": "500mg",
+         "duration": "7 days (after food)",
+         "frequency": "1-1-1"
+        },
+        {
+         "name": "Salbutamol Inhaler",
+         "dosage": "100mcg/puff - 2 puffs",
+         "duration": "7 days via spacer",
+         "frequency": "TDS"
+        },
+        {
+         "name": "Syp Ambrodil-S",
+         "dosage": "10ml",
+         "duration": "5 days",
+         "frequency": "TDS"
+        },
+        {
+         "name": "Tab Montelukast",
+         "dosage": "10mg",
+         "duration": "14 days",
+         "frequency": "0-0-1"
+        }
+       ],
+       "treatment": "Steam inhalation TDS",
+       "doctor_name": "Dr. S. Iyer",
+       "patient_age": 44,
+       "patient_name": "DEEPAK SHAH",
+       "hospital_name": "APOLLO HOSPITALS",
+       "tests_ordered": [],
+       "patient_gender": "Male",
+       "field_confidences": {
+        "date": 1,
+        "diagnosis": 1,
+        "medicines": 1,
+        "treatment": 1,
+        "doctor_name": 1,
+        "patient_age": 1,
+        "patient_name": 1,
+        "hospital_name": 1,
+        "tests_ordered": 1,
+        "patient_gender": 1,
+        "doctor_registration": 1,
+        "doctor_specialization": 1
+       },
+       "doctor_registration": "TN/56789/2013",
+       "doctor_specialization": "Pulmonology"
+      },
+      "hospital_bill": {
+       "date": "2024-11-03",
+       "total": 4500,
+       "line_items": [
+        {
+         "amount": 1500,
+         "description": "Consultation Fee (Pulmonology, Senior Consultant)"
+        },
+        {
+         "amount": 1500,
+         "description": "Amoxicillin 500mg"
+        },
+        {
+         "amount": 3000,
+         "description": "Salbutam Salbutamol Inhaler"
+        },
+        {
+         "amount": 3000,
+         "description": "Ambrodil-S, Montelukast 10ms"
+        }
+       ],
+       "bill_number": "APL/CHN/OP/78456",
+       "patient_name": "Deepak SHAH",
+       "hospital_name": "APOLLO HOSPITALS ENTERISE LTD",
+       "field_confidences": {
+        "date": 0.9,
+        "total": 1,
+        "line_items": 0.98,
+        "bill_number": 1,
+        "patient_name": 0.95,
+        "hospital_name": 1
+       }
+      },
+      "pharmacy_bill": null,
+      "extraction_confidence": 0.95
+     },
+     "summary": "Data extraction completed",
+     "step_name": "DOCUMENT_EXTRACTION",
+     "step_order": 2
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "eligible": true,
+      "warnings": [],
+      "approved_amount": 3240,
+      "rule_evaluations": [
+       {
+        "passed": true,
+        "details": "Member exists and policy is active",
+        "blocking": false,
+        "rule_name": "MEMBER_ELIGIBILITY"
+       },
+       {
+        "passed": true,
+        "details": "Submitted 1 days after treatment (limit: 30)",
+        "blocking": false,
+        "rule_name": "SUBMISSION_DEADLINE"
+       },
+       {
+        "passed": true,
+        "details": "Claimed amount Rs. 4500.0 vs minimum Rs. 500.0",
+        "blocking": false,
+        "rule_name": "MINIMUM_AMOUNT"
+       },
+       {
+        "passed": true,
+        "details": "Enrolled 216 days (minimum: 30)",
+        "blocking": false,
+        "rule_name": "INITIAL_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Diagnosis does not match any waiting period condition",
+        "blocking": false,
+        "rule_name": "CONDITION_WAITING_PERIOD"
+       },
+       {
+        "passed": true,
+        "details": "Treatment not excluded under policy",
+        "blocking": false,
+        "rule_name": "EXCLUSION_CHECK"
+       },
+       {
+        "passed": true,
+        "details": "Pre-auth check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PRE_AUTHORIZATION"
+       },
+       {
+        "passed": true,
+        "details": "Claimed Rs. 4500.0 vs per-claim limit Rs. 5000.0",
+        "blocking": false,
+        "rule_name": "PER_CLAIM_LIMIT"
+       },
+       {
+        "passed": true,
+        "details": "Procedure coverage check not applicable for CONSULTATION",
+        "blocking": false,
+        "rule_name": "PROCEDURE_COVERAGE"
+       },
+       {
+        "passed": true,
+        "details": "Eligible: Rs. 4500.0, Network discount: 20.0% (Rs. 900.00), Co-pay: 10.0% (Rs. 360.00), Final: Rs. 3240.0",
+        "blocking": false,
+        "rule_name": "AMOUNT_CALCULATION"
+       }
+      ],
+      "rejection_reasons": [],
+      "decision_suggestion": "APPROVED",
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 360,
+       "copay_percent": 10,
+       "discount_amount": 900,
+       "eligible_amount": 4500,
+       "original_amount": 4500,
+       "amount_after_copay": 3240,
+       "amount_after_discount": 3600,
+       "final_approved_amount": 3240,
+       "network_discount_applied": true,
+       "network_discount_percent": 20
+      }
+     },
+     "summary": "Policy evaluation completed",
+     "step_name": "POLICY_ENGINE",
+     "step_order": 3
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "signals": [
+       {
+        "weight": 1,
+        "evidence": "Same member, amount (Rs. 4500.0), date (2024-11-03), provider (Apollo Hospitals)",
+        "severity": 0.9,
+        "description": "Potential duplicate claim detected",
+        "signal_type": "DUPLICATE_CLAIM"
+       }
+      ],
+      "risk_level": "MEDIUM",
+      "fraud_score": 0.36,
+      "requires_manual_review": false
+     },
+     "summary": "Fraud detection completed",
+     "step_name": "FRAUD_DETECTION",
+     "step_order": 4
+    },
+    {
+     "status": "COMPLETED",
+     "details": {
+      "decision": "APPROVED",
+      "ops_summary": "Claim approved for Rs. 3,240 after 20% network discount and 10% copay on Rs. 4,500 original amount. Duplicate claim flag detected but low fraud score (0.36) with high confidence (0.85).",
+      "user_message": "Your claim has been approved for Rs. 3,240. This amount reflects network provider discounts and your policy's copayment requirements on the original claim of Rs. 4,500.",
+      "approved_amount": 3240,
+      "recommendations": [
+       "Fraud score elevated (0.36)"
+      ],
+      "confidence_score": 0.85,
+      "rejection_reasons": [],
+      "line_item_decisions": null,
+      "calculation_breakdown": {
+       "copay_amount": 360,
+       "copay_percent": 10,
+       "discount_amount": 900,
+       "eligible_amount": 4500,
+       "original_amount": 4500,
+       "amount_after_copay": 3240,
+       "amount_after_discount": 3600,
+       "final_approved_amount": 3240,
+       "network_discount_applied": true,
+       "network_discount_percent": 20
+      },
+      "confidence_deductions": [
+       {
+        "reason": "elevated fraud score (0.360)",
+        "deduction": 0.1
+       }
+      ]
+     },
+     "summary": "Final decision rendered",
+     "step_name": "FINAL_DECISION",
+     "step_order": 5
+    }
+   ],
+   "degraded": false,
+   "final_decision": {
+    "decision": "APPROVED",
+    "ops_summary": "Claim approved for Rs. 3,240 after 20% network discount and 10% copay on Rs. 4,500 original amount. Duplicate claim flag detected but low fraud score (0.36) with high confidence (0.85).",
+    "user_message": "Your claim has been approved for Rs. 3,240. This amount reflects network provider discounts and your policy's copayment requirements on the original claim of Rs. 4,500.",
+    "approved_amount": 3240,
+    "recommendations": [
+     "Fraud score elevated (0.36)"
+    ],
+    "confidence_score": 0.85,
+    "rejection_reasons": [],
+    "line_item_decisions": null,
+    "calculation_breakdown": {
+     "copay_amount": 360,
+     "copay_percent": 10,
+     "discount_amount": 900,
+     "eligible_amount": 4500,
+     "original_amount": 4500,
+     "amount_after_copay": 3240,
+     "amount_after_discount": 3600,
+     "final_approved_amount": 3240,
+     "network_discount_applied": true,
+     "network_discount_percent": 20
+    },
+    "confidence_deductions": [
+     {
+      "reason": "elevated fraud score (0.360)",
+      "deduction": 0.1
+     }
+    ]
+   },
+   "pipeline_version": "1.0.0",
+   "degradation_notes": []
+  }
+ }
+}

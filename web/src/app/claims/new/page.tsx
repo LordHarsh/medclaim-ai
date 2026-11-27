@@ -185,6 +185,19 @@ export default function NewClaimPage() {
           </p>
         </div>
 
+        <div className="mb-6 rounded-lg border border-[var(--hairline)] bg-[var(--canvas)] px-4 py-3 body-md text-[var(--ink-mute)]">
+          Trying this out? The policy rejects any bill dated more than 30 days ago, and each upload is checked against
+          the document type it is supposed to be. To see claims decided without documents of your own,{" "}
+          <Link href="/admin/eval" className="text-[var(--primary-indigo)] underline underline-offset-4">
+            run a prepared claim
+          </Link>{" "}
+          or open the{" "}
+          <Link href="/demo" className="text-[var(--primary-indigo)] underline underline-offset-4">
+            step-by-step replay
+          </Link>
+          .
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Errors */}
           {errors.length > 0 && (

@@ -26,14 +26,14 @@ export default function HomePage() {
         </h1>
 
         <p className="mt-6 body-lg text-[var(--ink-mute)] max-w-lg">
-          AI-powered decisions in minutes. Upload documents, get transparent explanations.
+          Five agents read the documents, apply the policy, check for fraud and decide, and every step is written down so the decision can be explained.
         </p>
 
         <Link
-          href="/auth/sign-up"
+          href="/demo"
           className="btn-pill btn-pill-primary inline-flex items-center px-8 py-3.5 text-base mt-10"
         >
-          Get Started
+          See a claim get decided
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -49,12 +49,20 @@ export default function HomePage() {
           </svg>
         </Link>
 
-        <Link
-          href="/auth/sign-in"
-          className="mt-4 body-md text-[var(--ink-mute)] hover:text-[var(--primary-indigo)] transition-colors"
-        >
-          Already have an account? Sign in
-        </Link>
+        <p className="mt-3 body-md text-[var(--ink-mute)]">
+          Six sample claims, replayed agent by agent. No account needed.
+        </p>
+
+        <p className="mt-8 body-md text-[var(--ink-mute)]">
+          <Link href="/auth/sign-up" className="hover:text-[var(--primary-indigo)] transition-colors underline underline-offset-4">
+            Create an account
+          </Link>{" "}
+          to run claims live, or{" "}
+          <Link href="/auth/sign-in" className="hover:text-[var(--primary-indigo)] transition-colors underline underline-offset-4">
+            sign in
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );
