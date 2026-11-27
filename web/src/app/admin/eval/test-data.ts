@@ -1,6 +1,6 @@
 /**
  * Test cases data and expected outcomes for the admin evaluation system.
- * Derived from resources/test_cases.json — embedded here for runtime access.
+ * Derived from resources/test_cases.json: embedded here for runtime access.
  */
 
 export interface TestCaseDocument {
@@ -171,7 +171,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC004",
-    case_name: "Clean Consultation — Full Approval",
+    case_name: "Clean Consultation: Full Approval",
     description: "Complete, valid consultation claim with correct documents, valid member, covered treatment, within all limits.",
     input: {
       member_id: "EMP001",
@@ -190,7 +190,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC005",
-    case_name: "Waiting Period — Diabetes",
+    case_name: "Waiting Period: Diabetes",
     description: "Member joined 2024-09-01. Claims for diabetes treatment on 2024-10-15, within the 90-day waiting period.",
     input: {
       member_id: "EMP005",
@@ -208,7 +208,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC006",
-    case_name: "Dental Partial Approval — Cosmetic Exclusion",
+    case_name: "Dental Partial Approval: Cosmetic Exclusion",
     description: "Bill includes root canal (covered) and teeth whitening (cosmetic, excluded).",
     input: {
       member_id: "EMP002",
@@ -270,7 +270,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC009",
-    case_name: "Fraud Signal — Multiple Same-Day Claims",
+    case_name: "Fraud Signal: Multiple Same-Day Claims",
     description: "Member EMP008 has already submitted 3 claims today. This is the 4th claim from the same member on the same day.",
     input: {
       member_id: "EMP008",
@@ -296,7 +296,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC010",
-    case_name: "Network Hospital — Discount Applied",
+    case_name: "Network Hospital: Discount Applied",
     description: "Valid claim at Apollo Hospitals (network hospital). Network discount must be applied before co-pay.",
     input: {
       member_id: "EMP010",
@@ -319,7 +319,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     case_id: "TC011",
-    case_name: "Component Failure — Graceful Degradation",
+    case_name: "Component Failure: Graceful Degradation",
     description: "One component fails mid-processing. Pipeline must continue with reduced confidence.",
     input: {
       member_id: "EMP006",

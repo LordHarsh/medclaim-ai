@@ -22,7 +22,7 @@
         "system_must": [
           "Stop before making any claim decision",
           "Tell the member specifically what document type was uploaded and what is needed instead",
-          "Not return a generic error — the message must name the uploaded document type and the required document type"
+          "Not return a generic error: the message must name the uploaded document type and the required document type"
         ]
       }
     },
@@ -76,7 +76,7 @@
     },
     {
       "case_id": "TC004",
-      "case_name": "Clean Consultation — Full Approval",
+      "case_name": "Clean Consultation: Full Approval",
       "description": "Complete, valid consultation claim with correct documents, valid member, covered treatment, within all limits.",
       "input": {
         "member_id": "EMP001",
@@ -124,7 +124,7 @@
     },
     {
       "case_id": "TC005",
-      "case_name": "Waiting Period — Diabetes",
+      "case_name": "Waiting Period: Diabetes",
       "description": "Member joined 2024-09-01. Claims for diabetes treatment on 2024-10-15, which is within the 90-day waiting period for diabetes.",
       "input": {
         "member_id": "EMP005",
@@ -165,7 +165,7 @@
     },
     {
       "case_id": "TC006",
-      "case_name": "Dental Partial Approval — Cosmetic Exclusion",
+      "case_name": "Dental Partial Approval: Cosmetic Exclusion",
       "description": "Bill includes root canal treatment (covered) and teeth whitening (cosmetic, excluded). System must approve only the covered procedure.",
       "input": {
         "member_id": "EMP002",
@@ -288,7 +288,7 @@
     },
     {
       "case_id": "TC009",
-      "case_name": "Fraud Signal — Multiple Same-Day Claims",
+      "case_name": "Fraud Signal: Multiple Same-Day Claims",
       "description": "Member EMP008 has already submitted 3 claims today before this one arrives. This is the 4th claim from the same member on the same day.",
       "input": {
         "member_id": "EMP008",
@@ -317,7 +317,7 @@
     },
     {
       "case_id": "TC010",
-      "case_name": "Network Hospital — Discount Applied",
+      "case_name": "Network Hospital: Discount Applied",
       "description": "Valid claim at Apollo Hospitals, a network hospital. Network discount must be applied before co-pay.",
       "input": {
         "member_id": "EMP010",
@@ -366,7 +366,7 @@
     },
     {
       "case_id": "TC011",
-      "case_name": "Component Failure — Graceful Degradation",
+      "case_name": "Component Failure: Graceful Degradation",
       "description": "One component of your system fails mid-processing (simulate with the flag below). The overall pipeline must continue, produce a decision, and make the failure visible in the output with an appropriately reduced confidence score.",
       "input": {
         "member_id": "EMP006",
@@ -427,7 +427,7 @@
             "content": {
               "doctor_name": "Dr. P. Banerjee",
               "doctor_registration": "WB/34567/2015",
-              "diagnosis": "Morbid Obesity — BMI 37",
+              "diagnosis": "Morbid Obesity: BMI 37",
               "treatment": "Bariatric Consultation and Customised Diet Plan"
             }
           },
@@ -452,8 +452,8 @@
     }
   ],
   "notes": [
-    "TC001–TC003 test early document problem detection. The quality of the user-facing message is part of the evaluation — not just whether the system stops.",
-    "TC010 tests financial calculation order — network discount must be applied before co-pay.",
+    "TC001–TC003 test early document problem detection. The quality of the user-facing message is part of the evaluation: not just whether the system stops.",
+    "TC010 tests financial calculation order: network discount must be applied before co-pay.",
     "TC011 tests resilience. A system that crashes on component failure does not pass this case.",
     "For your eval report, show the full decision output for each case, not just pass/fail."
   ]

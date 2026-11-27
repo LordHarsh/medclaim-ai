@@ -49,7 +49,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
 
   const { input, documents } = testCase;
 
-  // Use EXACT treatment dates from test_cases.json — no overrides.
+  // Use EXACT treatment dates from test_cases.json: no overrides.
   // Lambda uses freezegun to freeze time so submission_deadline passes naturally.
   // eval_freeze_date = treatment_date + 1 day (simulates submitting the day after treatment)
   const treatmentDate = input.treatment_date;
@@ -60,7 +60,7 @@ export async function runTestCase(caseId: string): Promise<RunTestCaseResult> {
   // For TC009 fraud history, use the treatment_date (not today)
   const today = treatmentDate;
 
-  // Build metadata — eval_freeze_date tells Lambda to freeze time during processing
+  // Build metadata: eval_freeze_date tells Lambda to freeze time during processing
   const metadata: Record<string, unknown> = { eval_freeze_date: evalFreezeDate };
   if (input.simulate_component_failure) {
     metadata.simulate_component_failure = true;
@@ -193,7 +193,7 @@ export async function getTestCaseResult(
     claim_id: row.claim_id,
     status: row.status,
     decision: row.decision,
-    // Postgres NUMERIC returns as string — cast to number
+    // Postgres NUMERIC returns as string: cast to number
     approved_amount: row.approved_amount != null ? Number(row.approved_amount) : null,
     confidence_score: row.confidence_score != null ? Number(row.confidence_score) : null,
     fraud_score: row.fraud_score != null ? Number(row.fraud_score) : null,

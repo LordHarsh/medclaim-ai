@@ -29,7 +29,7 @@ test-case suite.
 | Field | Value | Meaning |
 |---|---|---|
 | `policy_id` | `PLUM_GHI_2024` | Unique identifier used in every claim submission |
-| `policy_name` | Group Health Insurance — Standard Plan | Human-readable name |
+| `policy_name` | Group Health Insurance: Standard Plan | Human-readable name |
 | `insurer` | ICICI Lombard General Insurance | The insurance company underwriting the policy |
 | `policy_holder.company_name` | TechCorp Solutions Pvt Ltd | The corporate client whose employees are covered |
 | `policy_holder.employee_count` | 500 | Headcount at the time of policy issuance |
@@ -45,7 +45,7 @@ every claim immediately.
 
 ## 2. Coverage Limits
 
-### 2.1 `sum_insured_per_employee` — ₹5,00,000
+### 2.1 `sum_insured_per_employee`: ₹5,00,000
 
 The maximum total payout the insurer will make for **in-patient /
 hospitalisation** claims for a single employee in the policy year.
@@ -55,7 +55,7 @@ Example: If Rajesh Kumar (EMP001) incurs a ₹4,00,000 surgery and later
 a ₹2,00,000 procedure, the second claim would be capped at ₹1,00,000 because
 only ₹1,00,000 of the sum insured remains.
 
-### 2.2 `annual_opd_limit` — ₹50,000
+### 2.2 `annual_opd_limit`: ₹50,000
 
 The maximum aggregate the insurer will pay across **all OPD claims**
 (consultation, diagnostics, pharmacy, dental, vision, alternative medicine)
@@ -67,7 +67,7 @@ and submits a valid consultation claim for ₹3,000 that would otherwise
 pay ₹2,700, the final approved amount is capped at ₹2,000 (the remaining
 headroom).
 
-### 2.3 `per_claim_limit` — ₹5,000
+### 2.3 `per_claim_limit`: ₹5,000
 
 The maximum the insurer pays on any **single OPD claim** for categories
 that do not carry their own procedure coverage lists. This prevents a
@@ -77,7 +77,7 @@ single visit from consuming a disproportionate share of the annual limit.
 `covered_procedures` / `excluded_procedures` / `covered_items` /
 `excluded_items` lists (DENTAL and VISION) are exempt from this limit.
 Their sub_limit and procedure-level decisions act as the cap instead.
-This is why TC006 (Dental — ₹8,000 Root Canal) is approved at ₹8,000
+This is why TC006 (Dental: ₹8,000 Root Canal) is approved at ₹8,000
 rather than being capped at ₹5,000.
 
 Applies to: CONSULTATION, DIAGNOSTIC, PHARMACY, ALTERNATIVE_MEDICINE.
@@ -86,7 +86,7 @@ Applies to: CONSULTATION, DIAGNOSTIC, PHARMACY, ALTERNATIVE_MEDICINE.
 
 | Sub-field | Value | Meaning |
 |---|---|---|
-| `enabled` | `true` | The policy runs as a floater — all covered family members share a common pool |
+| `enabled` | `true` | The policy runs as a floater: all covered family members share a common pool |
 | `combined_limit` | ₹1,50,000 | Maximum aggregate payout for the entire family unit in the policy year |
 | `covered_relationships` | SELF, SPOUSE, CHILDREN, PARENTS | Only these relationships qualify for coverage under the floater |
 
@@ -106,7 +106,7 @@ The insurer pays the remainder.
 
 **Network discount** is a pre-negotiated rate reduction from hospitals
 in the insurer's network. This discount is applied **before** co-pay is
-calculated — the member's co-pay percentage is applied to the
+calculated: the member's co-pay percentage is applied to the
 already-discounted amount, not the original bill.
 
 Order: `original → subtract network discount → apply co-pay → get approved amount`
@@ -150,7 +150,7 @@ hospital) and claims ₹1,500.
 | `copay_percent` | 0% |
 | `network_discount_percent` | 10% |
 | `requires_prescription` | Yes |
-| `requires_pre_auth` | No (unless high-value test — see below) |
+| `requires_pre_auth` | No (unless high-value test: see below) |
 | `pre_auth_threshold` | ₹10,000 |
 | `high_value_tests_requiring_pre_auth` | MRI, CT Scan, PET Scan |
 | `covered` | Yes |
@@ -233,7 +233,7 @@ is the `sub_limit` of ₹10,000.
 - Root Canal Treatment: ₹8,000 → **APPROVED** (covered procedure)
 - Teeth Whitening: ₹4,000 → **REJECTED** (cosmetic exclusion)
 
-Decision: `PARTIAL` — approved amount ₹8,000.
+Decision: `PARTIAL`: approved amount ₹8,000.
 
 Required documents: HOSPITAL_BILL (required); PRESCRIPTION and
 DENTAL_REPORT (optional).
@@ -297,7 +297,7 @@ across all AYUSH claims in the policy year combined.
 
 **TC011 example:** Kavita Nair (EMP006) claims ₹4,000 for Panchakarma
 Therapy (5 sessions). With no co-pay and within the ₹8,000 sub_limit
-and 20-session cap, the claim is approved — subject to fraud checks and
+and 20-session cap, the claim is approved: subject to fraud checks and
 document validation.
 
 Required documents: PRESCRIPTION, HOSPITAL_BILL.
@@ -317,7 +317,7 @@ If `days_enrolled < required_days` the rule fails and the claim is
 rejected with reason `WAITING_PERIOD`. The output includes the date
 from which the member becomes eligible.
 
-### 4.1 `initial_waiting_period_days` — 30 days
+### 4.1 `initial_waiting_period_days`: 30 days
 
 Every new member must wait **30 days** from their `join_date` before
 any OPD claim is payable, regardless of the condition. This applies
@@ -326,7 +326,7 @@ universally.
 Example: A member joining on 2024-04-01 can submit claims for
 treatment dated 2024-05-01 or later.
 
-### 4.2 `pre_existing_conditions_days` — 365 days
+### 4.2 `pre_existing_conditions_days`: 365 days
 
 Conditions that existed before the policy join date are not covered
 for the first 365 days (one full policy year). The LLM-based condition
@@ -361,7 +361,7 @@ required days are looked up and compared against `days_enrolled`.
 - Eligible from: 2024-11-30 (join_date + 90 days)
 
 This is why EMP005's late join date (September instead of April) matters
-specifically for conditions with a 90-day waiting period — it pushes
+specifically for conditions with a 90-day waiting period: it pushes
 their eligibility date later into the policy year.
 
 ---
@@ -384,14 +384,14 @@ of when the member joined:
 | Bariatric surgery | Gastric bypass, sleeve gastrectomy, and similar procedures |
 | Cosmetic or aesthetic procedures | Any procedure whose primary purpose is appearance, not medical necessity |
 | Vaccination (non-medically necessary) | Routine/travel vaccinations; medically-indicated vaccines (e.g., post-bite rabies) are covered |
-| Health supplements and tonics | Vitamins, protein powders, nutraceuticals — items sold without a medical indication |
+| Health supplements and tonics | Vitamins, protein powders, nutraceuticals: items sold without a medical indication |
 
 The LLM-based exclusion classifier reads the diagnosis and treatment
 text from the extracted prescription and checks against this list. A
 match triggers an `EXCLUDED_CONDITION` rejection.
 
 **TC012 example:** Anita Desai (EMP009) submits for "Bariatric
-Consultation and Customised Diet Plan" with diagnosis "Morbid Obesity —
+Consultation and Customised Diet Plan" with diagnosis "Morbid Obesity , 
 BMI 37". Both `Bariatric surgery` and `Obesity and weight loss programs`
 are on the exclusion list. The claim is rejected with reason
 `EXCLUDED_CONDITION` (confidence > 0.90).
@@ -438,7 +438,7 @@ fields on the DIAGNOSTIC category config. If the prescription's
 Scan, and the total claimed amount exceeds ₹10,000, the claim is
 rejected with `PRE_AUTH_MISSING`.
 
-### `validity_days` — 30 days
+### `validity_days`: 30 days
 
 An approved pre-authorisation is valid for 30 days from the date it
 was issued. If treatment does not occur within this window, a fresh
@@ -481,7 +481,7 @@ When a claim is submitted with a `hospital_name` that fuzzy-matches
 | VISION | 0% (not applicable) |
 | ALTERNATIVE_MEDICINE | 0% (not applicable) |
 
-**TC010 worked example — Apollo Hospitals consultation:**
+**TC010 worked example: Apollo Hospitals consultation:**
 
 ```
 Claimed amount:          ₹4,500
@@ -525,10 +525,10 @@ strengthen the claim but not mandatory).
 |---|---|---|
 | CONSULTATION | PRESCRIPTION, HOSPITAL_BILL | LAB_REPORT, DIAGNOSTIC_REPORT |
 | DIAGNOSTIC | PRESCRIPTION, LAB_REPORT, HOSPITAL_BILL | DISCHARGE_SUMMARY |
-| PHARMACY | PRESCRIPTION, PHARMACY_BILL | — |
+| PHARMACY | PRESCRIPTION, PHARMACY_BILL |: |
 | DENTAL | HOSPITAL_BILL | PRESCRIPTION, DENTAL_REPORT |
-| VISION | PRESCRIPTION, HOSPITAL_BILL | — |
-| ALTERNATIVE_MEDICINE | PRESCRIPTION, HOSPITAL_BILL | — |
+| VISION | PRESCRIPTION, HOSPITAL_BILL |: |
+| ALTERNATIVE_MEDICINE | PRESCRIPTION, HOSPITAL_BILL |: |
 
 **Important notes:**
 
@@ -551,7 +551,7 @@ strengthen the claim but not mandatory).
 ## 10. Fraud Thresholds
 
 All fraud thresholds are read from `policy.fraud_thresholds` at runtime.
-The fraud detection agent is **fully deterministic** — it runs 8
+The fraud detection agent is **fully deterministic**: it runs 8
 signal checks and combines their weighted scores.
 
 ### 10.1 Configured Thresholds
@@ -605,15 +605,15 @@ review regardless of their fraud score.
 same day (3 prior claims already on 2024-10-30 from 3 different
 clinics). The `SAME_DAY_CLAIMS_EXCEEDED` signal fires (3 ≥ limit of 2)
 with severity 0.8 and `MULTIPLE_PROVIDERS_SAME_DAY` also fires
-(4 distinct providers). The claim is routed to `MANUAL_REVIEW` — not
-auto-rejected — so that a human adjudicator can verify whether the
+(4 distinct providers). The claim is routed to `MANUAL_REVIEW`: not
+auto-rejected: so that a human adjudicator can verify whether the
 activity is legitimate.
 
 ---
 
 ## 11. Members Roster
 
-The policy JSON includes 12 members — 10 primary employees and 2
+The policy JSON includes 12 members: 10 primary employees and 2
 registered dependents.
 
 ### Primary Employees
@@ -621,14 +621,14 @@ registered dependents.
 | member_id | Name | Date of Birth | Gender | Join Date | Dependents |
 |---|---|---|---|---|---|
 | EMP001 | Rajesh Kumar | 1985-03-15 | M | 2024-04-01 | DEP001, DEP002 |
-| EMP002 | Priya Singh | 1990-07-22 | F | 2024-04-01 | — |
+| EMP002 | Priya Singh | 1990-07-22 | F | 2024-04-01 |: |
 | EMP003 | Amit Verma | 1988-11-05 | M | 2024-04-01 | DEP003 |
-| EMP004 | Sneha Reddy | 1992-02-28 | F | 2024-04-01 | — |
-| EMP005 | Vikram Joshi | 1979-09-10 | M | **2024-09-01** | — |
-| EMP006 | Kavita Nair | 1983-06-18 | F | 2024-04-01 | — |
+| EMP004 | Sneha Reddy | 1992-02-28 | F | 2024-04-01 |: |
+| EMP005 | Vikram Joshi | 1979-09-10 | M | **2024-09-01** |: |
+| EMP006 | Kavita Nair | 1983-06-18 | F | 2024-04-01 |: |
 | EMP007 | Suresh Patil | 1975-12-30 | M | 2024-04-01 | DEP004, DEP005 |
-| EMP008 | Ravi Menon | 1987-04-14 | M | 2024-04-01 | — |
-| EMP009 | Anita Desai | 1993-08-25 | F | 2024-04-01 | — |
+| EMP008 | Ravi Menon | 1987-04-14 | M | 2024-04-01 |: |
+| EMP009 | Anita Desai | 1993-08-25 | F | 2024-04-01 |: |
 | EMP010 | Deepak Shah | 1980-01-07 | M | 2024-04-01 | DEP006 |
 
 ### Registered Dependents
@@ -643,7 +643,7 @@ fully defined in this policy file.)
 
 ### EMP005's Special Join Date
 
-Vikram Joshi joined on **2024-09-01** — five months after everyone else.
+Vikram Joshi joined on **2024-09-01**: five months after everyone else.
 This matters because all waiting periods run from the individual
 member's `join_date`, not the policy start date.
 
@@ -730,7 +730,7 @@ involving rounding).
 
 ### Full Examples
 
-#### TC004 — Non-network consultation, partial co-pay
+#### TC004: Non-network consultation, partial co-pay
 
 ```
 Member:              EMP001 (Rajesh Kumar)
@@ -745,10 +745,10 @@ Step 3: 10% co-pay → copay_amount = ₹150 → amount_after_copay = ₹1,350
 Step 4: remaining = ₹50,000 − ₹5,000 = ₹45,000; ₹1,350 < ₹45,000 → no cap
 Step 5: final_amount = ₹1,350
 
-Decision: APPROVED — ₹1,350
+Decision: APPROVED: ₹1,350
 ```
 
-#### TC006 — Dental partial approval with procedure exclusion
+#### TC006: Dental partial approval with procedure exclusion
 
 ```
 Member:              EMP002 (Priya Singh)
@@ -767,18 +767,18 @@ Step 3: 0% co-pay → amount_after_copay = ₹8,000
 Step 4: Assume sufficient remaining headroom → no cap
 Step 5: final_amount = ₹8,000
 
-Decision: PARTIAL — ₹8,000
+Decision: PARTIAL: ₹8,000
   - Root Canal Treatment: APPROVED (₹8,000)
   - Teeth Whitening: REJECTED (Excluded procedure: Teeth Whitening)
 ```
 
-#### TC010 — Network hospital discount then co-pay
+#### TC010: Network hospital discount then co-pay
 
 ```
 Member:              EMP010 (Deepak Shah)
 Category:            CONSULTATION
 Claimed amount:      ₹4,500
-Hospital:            Apollo Hospitals (NETWORK — 20% discount)
+Hospital:            Apollo Hospitals (NETWORK: 20% discount)
 YTD approved:        ₹8,000
 
 Step 1: eligible_amount = ₹4,500 (within ₹5,000 per_claim_limit)
@@ -787,7 +787,7 @@ Step 3: Co-pay 10% on ₹3,600 → ₹360 off → amount_after_copay = ₹3,240
 Step 4: remaining = ₹50,000 − ₹8,000 = ₹42,000; ₹3,240 < ₹42,000 → no cap
 Step 5: final_amount = ₹3,240
 
-Decision: APPROVED — ₹3,240
+Decision: APPROVED: ₹3,240
 ```
 
 ---

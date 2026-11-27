@@ -24,7 +24,7 @@ MedClaim AI is an automated health insurance claims processing system that accep
 | Concurrent claims | Limited by SQS throughput + Lambda concurrency (default 10) |
 | Observability | Every LLM call traced (LangSmith), every span traced (Logfire) |
 | Idempotency | SQS message deduplication via `sqs_message_id` column |
-| Availability | Vercel (frontend), Lambda (worker), Neon (DB) — all managed |
+| Availability | Vercel (frontend), Lambda (worker), Neon (DB): all managed |
 | Data retention | Full trace JSON stored per claim indefinitely |
 
 ## 4. Architecture
@@ -104,7 +104,7 @@ Polls DB every 2s, emits events on state change. Max duration: 120s.
 | `step_update` | `{ step, status, message }` | `current_step` changes |
 | `decision` | `{ decision, approved_amount, confidence_score }` | status = COMPLETED |
 | `error` | `{ error_code, message }` | status = FAILED / NEEDS_REUPLOAD |
-| `done` | `{}` | Terminal — client should close |
+| `done` | `{}` | Terminal: client should close |
 
 ### 5.4 Admin APIs (Server Actions)
 
@@ -250,19 +250,19 @@ Test case treatment dates are historical (2024). The submission deadline rule us
 
 ## 8. Processing Flow (Step by Step)
 
-1. **SQS message received** — Lambda handler parses `{ claim_id }` from record body
-2. **Idempotency check** — Atomic UPDATE sets `sqs_message_id` WHERE NULL; skip if already set
-3. **Load context** — Fetch claim, member, policy config, documents, claim history, YTD total from Neon
-4. **Download documents** — Fetch image bytes from S3 for each `claim_document.s3_key`
-5. **Build ClaimState** — Assemble TypedDict with all loaded data + empty agent output slots
-6. **doc_verify** (CRITICAL) — Vision LLM classifies each document, checks quality (readability score), detects patient name, validates type matches. If unreadable/wrong docs: sets `should_stop_early=True`
-7. **Conditional edge** — If early stop: persist status NEEDS_REUPLOAD with the reason and no decision, write doc results, END
-8. **doc_extract** (degradable) — Vision LLM extracts structured data (line items, amounts, dates, diagnosis) from each document type
-9. **policy_engine** (degradable) — Orchestrator runs 10 evaluators in order. Short-circuits on blocking failure. Calculates approved amount (network discount applied before co-pay)
-10. **fraud_detection** (degradable) — 8 signal checks against claim history and thresholds from policy config. Computes weighted risk score
-11. **final_decision** (degradable) — Synthesizes policy evaluation + fraud score into final verdict, generates user-facing message and ops summary
-12. **persist_result** — Writes decision, approved_amount, fraud_score, trace_json to claims table. Updates document verification results in claim_documents table
-13. **SSE delivery** — Frontend poll detects `status=COMPLETED`, emits `decision` event to user
+1. **SQS message received**: Lambda handler parses `{ claim_id }` from record body
+2. **Idempotency check**: one atomic UPDATE claims the row when the claim is unfinished and no other message owns it. A redelivery of the same message after a crash is processed again; a delivery for a finished claim is skipped
+3. **Load context**: Fetch claim, member, policy config, documents, claim history, YTD total from Neon
+4. **Download documents**: Fetch image bytes from S3 for each `claim_document.s3_key`
+5. **Build ClaimState**: Assemble TypedDict with all loaded data + empty agent output slots
+6. **doc_verify** (CRITICAL): Vision LLM classifies each document, checks quality (readability score), detects patient name, validates type matches. If unreadable/wrong docs: sets `should_stop_early=True`
+7. **Conditional edge**: If early stop: persist status NEEDS_REUPLOAD with the reason and no decision, write doc results, END
+8. **doc_extract** (degradable): Vision LLM extracts structured data (line items, amounts, dates, diagnosis) from each document type
+9. **policy_engine** (degradable): Orchestrator runs 10 evaluators in order. Short-circuits on blocking failure. Calculates approved amount (network discount applied before co-pay)
+10. **fraud_detection** (degradable): 8 signal checks against claim history and thresholds from policy config. Computes weighted risk score
+11. **final_decision** (degradable): Synthesizes policy evaluation + fraud score into final verdict, generates user-facing message and ops summary
+12. **persist_result**: Writes decision, approved_amount, fraud_score, trace_json to claims table. Updates document verification results in claim_documents table
+13. **SSE delivery**: Frontend poll detects `status=COMPLETED`, emits `decision` event to user
 
 ## 9. Error Handling
 
@@ -272,11 +272,11 @@ Test case treatment dates are historical (2024). The submission deadline rule us
 | Claim not found in DB | handler.process_claim | Log error, return (message consumed) |
 | Member/policy not found | handler.process_claim | Set status=FAILED, return |
 | S3 download failure | handler.process_claim | Set `image_bytes=None`, continue (Vision will fail gracefully) |
-| doc_verify fails (exception) | PipelineNode | CRITICAL — re-raise, SQS retries |
+| doc_verify fails (exception) | PipelineNode | CRITICAL: re-raise, SQS retries |
 | doc_verify detects bad docs | Pipeline | Set `should_stop_early`, persist NEEDS_REUPLOAD (no decision) |
 | Degradable agent fails | PipelineNode | Catch, reduce confidence by 0.15, use safe defaults, add to `degraded_steps` |
 | All degradable agents fail | Pipeline | Final decision = MANUAL_REVIEW, confidence = 0.5 |
-| persist_result fails | persist_result_node | Log error (non-fatal — result exists in state) |
+| persist_result fails | persist_result_node | Log error (non-fatal: result exists in state) |
 | SQS duplicate delivery | Idempotency check | Skip processing, log skip |
 | Lambda timeout (300s) | AWS | Message returns to queue, retried |
 | DB connection stale after freeze | SQLAlchemy | `pool_pre_ping=True` detects and reconnects |
