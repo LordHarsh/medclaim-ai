@@ -1,69 +1,42 @@
-import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { LinkButton, TopBar } from "@/components/ui";
+import { HeroReplay } from "@/components/screens/hero-replay";
+import { DEMO_SAMPLES } from "@/lib/demo/samples";
+
+const REPO = "https://github.com/LordHarsh/medclaim-ai";
+
+/** The claims the landing page cycles through: one paid in part, one refused, one sent to a person. */
+const SHOWN = ["TC006", "TC010", "TC005", "TC009"];
 
 export default function HomePage() {
+  const samples = SHOWN.flatMap((id) => DEMO_SAMPLES.filter((s) => s.id === id));
   return (
-    <div className="gradient-mesh flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="flex flex-col items-center text-center max-w-2xl">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-indigo)] mb-8">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-7 w-7 text-white"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
+    <div className="flex min-h-screen flex-col">
+      <TopBar>
+        <LinkButton href={REPO} look="ghost" small external>
+          Source
+        </LinkButton>
+        <LinkButton href="/auth/sign-in" look="secondary" small>
+          Sign in
+        </LinkButton>
+      </TopBar>
+      <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-14">
+        <div>
+          <h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.03em] sm:text-[56px]">
+            Five agents decide a health claim.
+          </h1>
+          <p className="mt-4 text-[17px] text-ink-2">Every step is on the record.</p>
+          <div className="mt-8 flex flex-wrap gap-2.5">
+            <LinkButton href="/demo">
+              Run a sample claim <ArrowRight className="h-4 w-4" />
+            </LinkButton>
+            <LinkButton href="/auth/sign-up" look="secondary">
+              Create account
+            </LinkButton>
+          </div>
         </div>
-
-        <h1 className="display-xxl text-[var(--ink)]">
-          Health claims,<br />
-          <span className="text-[var(--primary-indigo)]">processed intelligently</span>
-        </h1>
-
-        <p className="mt-6 body-lg text-[var(--ink-mute)] max-w-lg">
-          Five agents read the documents, apply the policy, check for fraud and decide, and every step is written down so the decision can be explained.
-        </p>
-
-        <Link
-          href="/demo"
-          className="btn-pill btn-pill-primary inline-flex items-center px-8 py-3.5 text-base mt-10"
-        >
-          See a claim get decided
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="ml-2 h-4 w-4"
-          >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </Link>
-
-        <p className="mt-3 body-md text-[var(--ink-mute)]">
-          Six sample claims, replayed agent by agent. No account needed.
-        </p>
-
-        <p className="mt-8 body-md text-[var(--ink-mute)]">
-          <Link href="/auth/sign-up" className="hover:text-[var(--primary-indigo)] transition-colors underline underline-offset-4">
-            Create an account
-          </Link>{" "}
-          to run claims live, or{" "}
-          <Link href="/auth/sign-in" className="hover:text-[var(--primary-indigo)] transition-colors underline underline-offset-4">
-            sign in
-          </Link>
-          .
-        </p>
-      </div>
+        <HeroReplay samples={samples.length > 0 ? samples : DEMO_SAMPLES} />
+      </main>
     </div>
   );
 }

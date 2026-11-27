@@ -7,6 +7,7 @@
  */
 import recorded from "./recorded-runs.json";
 import { TEST_CASES, type TestCase } from "@/app/admin/eval/test-data";
+import type { ClaimLike } from "@/components/claim/model";
 
 export interface TraceStep {
   step_name: string;
@@ -39,7 +40,9 @@ export interface DemoSample {
   id: string;
   /** Short name for the picker. */
   title: string;
-  /** One line on why this case is worth opening. */
+  /** Two or three words for the picker: what this case shows. */
+  tag: string;
+  /** One line on why this case is worth opening. Used as a tooltip. */
   why: string;
   testCase: TestCase;
   run: RecordedRun;
@@ -47,13 +50,13 @@ export interface DemoSample {
   documents: { name: string; url: string }[];
 }
 
-const ORDER: { id: string; title: string; why: string }[] = [
-  { id: "TC004", title: "Clean consultation", why: "The plain path: all five agents run and the claim is approved, less the 10% co-pay." },
-  { id: "TC006", title: "Dental, part cosmetic", why: "One bill, two verdicts. The root canal is paid and the teeth whitening is refused, line by line." },
-  { id: "TC005", title: "Diabetes, too early", why: "A blocking rule fires. The member is 44 days into a 90-day waiting period, so the claim is rejected with the date it becomes eligible." },
-  { id: "TC001", title: "Wrong documents", why: "The pipeline stops after the first agent and tells the member exactly which document is missing. No decision is made." },
-  { id: "TC009", title: "Four claims in a day", why: "The policy rules pass, but the fraud signals add up, so the claim goes to a person instead of being paid." },
-  { id: "TC010", title: "Network hospital", why: "Order of operations: the 20% network discount comes off before the 10% co-pay." },
+const ORDER: { id: string; title: string; tag: string; why: string }[] = [
+  { id: "TC004", title: "Clean consultation", tag: "Co-pay", why: "The plain path: all five agents run and the claim is approved, less the 10% co-pay." },
+  { id: "TC006", title: "Dental, part cosmetic", tag: "Line by line", why: "One bill, two verdicts. The root canal is paid and the teeth whitening is refused, line by line." },
+  { id: "TC005", title: "Diabetes, too early", tag: "Waiting period", why: "A blocking rule fires. The member is 44 days into a 90-day waiting period, so the claim is rejected with the date it becomes eligible." },
+  { id: "TC001", title: "Wrong documents", tag: "Missing bill", why: "The pipeline stops after the first agent and tells the member exactly which document is missing. No decision is made." },
+  { id: "TC009", title: "Four claims in a day", tag: "Fraud signals", why: "The policy rules pass, but the fraud signals add up, so the claim goes to a person instead of being paid." },
+  { id: "TC010", title: "Network hospital", tag: "Network discount", why: "Order of operations: the 20% network discount comes off before the 10% co-pay." },
 ];
 
 const runs = recorded as unknown as Record<string, RecordedRun>;
@@ -72,47 +75,19 @@ export const DEMO_SAMPLES: DemoSample[] = ORDER.flatMap((o) => {
   ];
 });
 
-/** The five agents, in the order the graph runs them. What each one is, is taken from worker/core/pipeline.py. */
-export const AGENTS: {
-  step: string;
-  name: string;
-  kind: string;
-  onFailure: string;
-  does: string;
-}[] = [
-  {
-    step: "DOCUMENT_VERIFICATION",
-    name: "Document verification",
-    kind: "Gemini vision",
-    onFailure: "Critical: if this step crashes, the claim fails",
-    does: "Reads each upload, names its type, scores how readable it is, and checks every document is for the same patient. If the set is wrong, the pipeline stops here.",
-  },
-  {
-    step: "DOCUMENT_EXTRACTION",
-    name: "Document extraction",
-    kind: "Gemini vision",
-    onFailure: "Degradable",
-    does: "Turns the images into structured data: diagnosis, medicines, bill line items and totals, each with its own confidence.",
-  },
-  {
-    step: "POLICY_ENGINE",
-    name: "Policy engine",
-    kind: "10 rule evaluators, 2 of them LLM-backed",
-    onFailure: "Degradable",
-    does: "Runs the rules listed in the policy config, in the order the config gives. A blocking rule that fails ends the evaluation. The last rule works out the amount.",
-  },
-  {
-    step: "FRAUD_DETECTION",
-    name: "Fraud detection",
-    kind: "Deterministic",
-    onFailure: "Degradable",
-    does: "Checks eight signals against the member's claim history and the extracted data, and adds them into one weighted score.",
-  },
-  {
-    step: "FINAL_DECISION",
-    name: "Final decision",
-    kind: "Rules for the verdict, an LLM for the wording",
-    onFailure: "Degradable",
-    does: "Takes the policy result, sends it to manual review if the fraud step asked for that or if confidence is under 0.60, and itemises every confidence deduction. An LLM then writes one message for the member and one for the operations team; fixed templates take over if it fails.",
-  },
-];
+/** A sample as the claim screens read it. */
+export function claimOf(s: DemoSample): ClaimLike {
+  return {
+    category: s.testCase.input.claim_category,
+    claimed_amount: s.testCase.input.claimed_amount,
+    approved_amount: s.run.approved_amount,
+    status: s.run.status,
+    decision: s.run.decision,
+    current_step: s.run.status === "COMPLETED" ? "COMPLETED" : "DOCUMENT_VERIFICATION",
+    confidence_score: s.run.confidence_score,
+    fraud_score: s.run.fraud_score,
+    rejection_reasons: s.run.rejection_reasons,
+    error_message: s.run.error_message,
+    trace_json: s.run.trace,
+  };
+}

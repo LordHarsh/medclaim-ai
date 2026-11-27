@@ -5,10 +5,17 @@ import { runTestCase, getTestCaseResult } from "./actions";
 import type { TestCaseOutcome } from "./actions";
 import { TEST_CASES } from "./test-data";
 import type { TestCase } from "./test-data";
+import { CircleAlert, Check, Play, RotateCcw, X } from "lucide-react";
+import { Button, Card, Label, More, Notice, Page, TopBar, cx, duration, inr, shortDate, titleCase } from "@/components/ui";
+import { ClaimResult } from "@/components/claim/claim-result";
+import { OUTCOME, categoryLabel, outcomeOf, stepStates, toClaim, type Outcome } from "@/components/claim/model";
+import { DocThumbs, PipelineTrack, StatusPill } from "@/components/claim/pieces";
+import { appNav } from "@/components/screens/nav";
+import { DEMO_SAMPLES } from "@/lib/demo/samples";
 
 type CaseStatus = "idle" | "running" | "polling" | "passed" | "failed" | "error";
 
-interface CaseState {
+export interface CaseState {
   status: CaseStatus;
   claimId: string | null;
   outcome: TestCaseOutcome | null;
@@ -76,147 +83,17 @@ function evaluateResult(tc: TestCase, outcome: TestCaseOutcome): boolean {
   return false;
 }
 
-function formatAmount(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return "--";
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function formatDuration(ms: number | null): string {
-  if (ms === null) return "--";
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
-// ─── Pipeline step ordering ───────────────────────────────────────────────────
-const PIPELINE_STEPS = [
-  "LOAD_CONTEXT",
-  "DOCUMENT_VERIFICATION",
-  "DOCUMENT_EXTRACTION",
-  "POLICY_ENGINE",
-  "FRAUD_DETECTION",
-  "FINAL_DECISION",
-] as const;
-
-type PipelineStep = (typeof PIPELINE_STEPS)[number];
-
-// ─── Trace parsing helpers ────────────────────────────────────────────────────
-
-interface ParsedStep {
-  step_name: string;
-  status: string;
-  duration_ms?: number;
-  details?: Record<string, unknown>;
-  error?: string;
-}
-
-interface ParsedTrace {
-  steps: ParsedStep[];
-  final_decision?: {
-    decision?: string;
-    approved_amount?: number;
-    confidence_score?: number;
-    user_message?: string;
-  };
-}
-
-function parseTrace(trace_json: Record<string, unknown> | null): ParsedTrace | null {
-  if (!trace_json) return null;
-  try {
-    const steps = (trace_json.steps as ParsedStep[]) || [];
-    const final_decision = trace_json.final_decision as ParsedTrace["final_decision"];
-    return { steps, final_decision };
-  } catch {
-    return null;
-  }
-}
-
-function getStepSummary(step: ParsedStep): string[] {
-  const d = step.details || {};
-  const lines: string[] = [];
-
-  switch (step.step_name) {
-    case "DOCUMENT_VERIFICATION": {
-      const types = (d.types_detected as string[]) || [];
-      const names = (d.patient_names as string[]) || [];
-      if (types.length) lines.push(`Detected: ${types.join(", ")}`);
-      if (names.length) {
-        const unique = [...new Set(names)];
-        const consistent = unique.length === 1;
-        lines.push(`Patient: ${unique.join(", ")} (${consistent ? "consistent" : "mismatch"})`);
-      }
-      const count = d.documents_analyzed as number;
-      if (count !== undefined) lines.push(`Documents: ${count}`);
-      break;
-    }
-    case "DOCUMENT_EXTRACTION": {
-      const doctor = d.doctor_name as string;
-      const diagnosis = d.diagnosis as string;
-      const billTotal = d.bill_total as number;
-      const lineItems = d.line_items_count as number;
-      if (doctor) lines.push(`Doctor: ${doctor}`);
-      if (diagnosis) lines.push(`Diagnosis: ${diagnosis}`);
-      if (billTotal !== undefined) lines.push(`Bill: ${formatAmount(billTotal)}`);
-      if (lineItems !== undefined) lines.push(`Line items: ${lineItems}`);
-      break;
-    }
-    case "POLICY_ENGINE": {
-      const breakdown = d.calculation_breakdown as Record<string, unknown> | undefined;
-      const ruleEvals = d.rule_evaluations as unknown[];
-      if (ruleEvals) {
-        const passed = (ruleEvals as Array<{ passed?: boolean }>).filter((r) => r.passed !== false).length;
-        lines.push(`Rules: ${passed}/${ruleEvals.length} passed`);
-      }
-      if (breakdown) {
-        const discount = breakdown.network_discount_percent as number;
-        const copay = breakdown.copay_percent as number;
-        const copayAmt = breakdown.copay_amount as number;
-        const final = breakdown.final_approved_amount as number;
-        if (discount !== undefined) lines.push(`Network discount: ${discount}%`);
-        if (copay !== undefined) lines.push(`Co-pay: ${copay}% (${formatAmount(copayAmt)})`);
-        if (final !== undefined) lines.push(`Final amount: ${formatAmount(final)}`);
-      }
-      break;
-    }
-    case "FRAUD_DETECTION": {
-      const score = d.fraud_score as number;
-      const risk = d.risk_level as string;
-      const signals = d.signals as unknown[];
-      if (score !== undefined) lines.push(`Score: ${score}`);
-      if (risk) lines.push(`Risk: ${risk}`);
-      if (signals !== undefined) lines.push(`Signals: ${signals.length === 0 ? "none" : signals.join(", ")}`);
-      break;
-    }
-    case "FINAL_DECISION": {
-      const decision = d.decision as string;
-      const confidence = d.confidence_score as number;
-      if (decision) lines.push(`Decision: ${decision}`);
-      if (confidence !== undefined) lines.push(`Confidence: ${confidence.toFixed(3)}`);
-      break;
-    }
-    default: {
-      // Generic fallback
-      const keys = Object.keys(d).slice(0, 3);
-      for (const k of keys) {
-        const val = d[k];
-        if (typeof val === "string" || typeof val === "number") {
-          lines.push(`${k}: ${val}`);
-        }
-      }
-    }
-  }
-  return lines;
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function AdminEvalClient() {
-  const [states, setStates] = useState<Record<string, CaseState>>(getInitialStates);
+export default function AdminEvalClient({ initial, select }: { initial?: Record<string, Partial<CaseState>>; select?: string } = {}) {
+  const [states, setStates] = useState<Record<string, CaseState>>(() => {
+    const base = getInitialStates();
+    // The gallery passes finished states in, to draw this screen without running anything.
+    for (const [id, st] of Object.entries(initial ?? {})) if (base[id]) base[id] = { ...base[id], ...st };
+    return base;
+  });
   const [runningAll, setRunningAll] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(TEST_CASES[0]?.case_id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(select ?? TEST_CASES[0]?.case_id ?? null);
   const [elapsed, setElapsed] = useState<number>(0);
   const runAllStartRef = useRef<number | null>(null);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -347,16 +224,6 @@ export default function AdminEvalClient() {
     }
   }, []);
 
-  const toggleTrace = useCallback((caseId: string) => {
-    setStates((prev) => ({
-      ...prev,
-      [caseId]: {
-        ...prev[caseId],
-        traceExpanded: !prev[caseId].traceExpanded,
-      },
-    }));
-  }, []);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -381,734 +248,310 @@ export default function AdminEvalClient() {
   const selectedState = selectedId ? states[selectedId] : null;
 
   return (
-    <div className="min-h-screen bg-[var(--canvas-soft)] flex flex-col">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-[var(--canvas)] border-b border-[var(--hairline)] shrink-0">
-        <div className="max-w-[1440px] mx-auto px-6 py-5">
-          <div className="flex items-center justify-between gap-4">
-            {/* Title + stats */}
-            <div className="flex items-center gap-6 min-w-0">
-              <div>
-                <h1
-                  className="text-[28px] font-light tracking-[-0.56px] text-[var(--ink)]"
-                  style={{ fontFeatureSettings: '"ss01"' }}
-                >
-                  Evaluation Suite
-                </h1>
-                <p className="text-[13px] font-normal text-[var(--ink-mute)] mt-0.5 tracking-[-0.39px]">
-                  Full pipeline test harness
-                </p>
-              </div>
-
-              {/* Pass rate fraction */}
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-[8px] bg-[var(--canvas-soft)] border border-[var(--hairline)]">
-                <span
-                  className="text-[22px] font-light tabular-nums tracking-[-0.44px]"
-                  style={{
-                    color:
-                      passRate === null
-                        ? "var(--ink-mute)"
-                        : passRate >= 0.8
-                          ? "#059669"
-                          : passRate >= 0.5
-                            ? "#d97706"
-                            : "var(--ruby)",
-                  }}
-                >
-                  {passedCount} / {totalCases}
-                </span>
-                <span className="text-[12px] font-normal text-[var(--ink-mute)] tracking-[-0.36px]">
-                  passed
-                </span>
-              </div>
-
-              {/* Mini stat pills */}
-              <div className="hidden md:flex items-center gap-3">
-                <StatPill color="#059669" label="Passed" value={passedCount} />
-                <StatPill color="var(--ruby)" label="Failed" value={failedCount} />
-                <StatPill color="var(--primary-soft)" label="Running" value={runningCount} pulse={runningCount > 0} />
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 shrink-0">
-              {runningAll && (
-                <span className="text-[13px] font-normal tabular-nums text-[var(--ink-mute)] tracking-[-0.39px]">
-                  {elapsed}s elapsed
-                </span>
-              )}
-              <button
-                onClick={handleResetAll}
-                disabled={runningAll}
-                className="px-4 py-2 rounded-[9999px] border border-[var(--hairline)] text-[var(--ink-mute)]
-                           text-[14px] font-normal hover:border-[var(--ink-mute)] hover:text-[var(--ink)]
-                           disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                Reset All
-              </button>
-              <button
-                onClick={handleRunAll}
-                disabled={runningAll}
-                className="px-4 py-2 rounded-[9999px] bg-[var(--primary-indigo)] text-white
-                           text-[14px] font-normal hover:bg-[var(--primary-deep)] active:bg-[var(--primary-press)]
-                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {runningAll ? "Running..." : "Run All"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Two-column layout ───────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden max-w-[1440px] w-full mx-auto">
-        {/* Left: case list */}
-        <aside className="w-[340px] shrink-0 border-r border-[var(--hairline)] bg-[var(--canvas)] overflow-y-auto">
-          <div className="py-2">
+    <div className="min-h-screen">
+      <TopBar home="/dashboard" nav={appNav("tests")}>
+        {runningAll && <span className="text-[13px] tabular-nums text-ink-3">{elapsed}s</span>}
+        <Button look="ghost" small onClick={handleResetAll} disabled={runningAll}>
+          <RotateCcw className="h-3.5 w-3.5" /> Reset
+        </Button>
+        <Button small onClick={handleRunAll} disabled={runningAll}>
+          <Play className="h-3.5 w-3.5" /> {runningAll ? "Running" : "Run all"}
+        </Button>
+      </TopBar>
+      <Page>
+        {/* Score: one cell per test case. */}
+        <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+          <p className="shrink-0 text-[34px] font-semibold leading-none tracking-[-0.03em] tabular-nums">
+            <span className={cx(passRate === null ? "text-ink" : passRate >= 0.8 ? "text-ok" : passRate >= 0.5 ? "text-part" : "text-bad")}>{passedCount}</span>
+            <span className="text-ink-3"> / {totalCases}</span>
+            <span className="ml-2 text-[14px] font-normal tracking-normal text-ink-3">passed</span>
+          </p>
+          <ol className="grid flex-1 grid-cols-12 gap-1" aria-label="Test cases">
             {TEST_CASES.map((tc) => {
-              const state = states[tc.case_id];
-              const isSelected = selectedId === tc.case_id;
+              const st = states[tc.case_id].status;
               return (
-                <CaseRow
-                  key={tc.case_id}
-                  testCase={tc}
-                  state={state}
-                  isSelected={isSelected}
-                  onSelect={() => setSelectedId(tc.case_id)}
-                  onRun={(e) => {
-                    e.stopPropagation();
-                    handleRunCase(tc.case_id);
-                  }}
-                />
+                <li key={tc.case_id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(tc.case_id)}
+                    aria-label={`${tc.case_id}: ${CASE_WORD[st]}`}
+                    title={`${tc.case_id} ${tc.case_name}`}
+                    className={cx("block h-8 w-full rounded-md transition-colors", CASE_CELL[st], selectedId === tc.case_id && "ring-2 ring-ink ring-offset-2 ring-offset-surface")}
+                  />
+                </li>
               );
             })}
+          </ol>
+          <p className="shrink-0 text-[12px] text-ink-3">
+            {failedCount > 0 && <span className="mr-3 text-bad">{failedCount} failed</span>}
+            {runningCount > 0 && <span className="text-wait">{runningCount} running</span>}
+          </p>
+        </Card>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <ul className="overflow-hidden rounded-card border border-line bg-surface lg:self-start">
+            {TEST_CASES.map((tc) => {
+              const state = states[tc.case_id];
+              const on = selectedId === tc.case_id;
+              const busy = state.status === "running" || state.status === "polling";
+              return (
+                <li key={tc.case_id} className="border-b border-line last:border-b-0">
+                  <div className={cx("flex items-center gap-2.5 px-3 py-2.5", on && "bg-sunken")}>
+                    <button type="button" onClick={() => setSelectedId(tc.case_id)} aria-pressed={on} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-left">
+                      <span className={cx("h-2.5 w-2.5 shrink-0 rounded-full", CASE_DOT[state.status], busy && "animate-pulse")} aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium">{tc.case_name}</span>
+                        <span className="block truncate text-[12px] text-ink-3">
+                          {tc.case_id} · {busy && state.outcome?.current_step ? titleCase(state.outcome.current_step) : OUTCOME[expectedOutcome(tc)].label}
+                        </span>
+                      </span>
+                    </button>
+                    {state.duration !== null ? (
+                      <span className="shrink-0 text-[12px] tabular-nums text-ink-3">{duration(state.duration)}</span>
+                    ) : (
+                      <Button look="secondary" small onClick={() => handleRunCase(tc.case_id)} disabled={busy} aria-label={`Run ${tc.case_id}`}>
+                        {busy ? "…" : "Run"}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="min-w-0">
+            {selectedCase && selectedState ? (
+              <CaseDetail testCase={selectedCase} state={selectedState} onRun={() => handleRunCase(selectedCase.case_id)} />
+            ) : null}
           </div>
-        </aside>
-
-        {/* Right: detail panel */}
-        <main className="flex-1 overflow-y-auto">
-          {selectedCase && selectedState ? (
-            <DetailPanel
-              testCase={selectedCase}
-              state={selectedState}
-              onRun={() => handleRunCase(selectedCase.case_id)}
-              onToggleTrace={() => toggleTrace(selectedCase.case_id)}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-[var(--ink-mute)] text-[15px] font-light">
-              Select a test case to view details
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
-  );
-}
-
-// ─── Stat pill ────────────────────────────────────────────────────────────────
-
-function StatPill({
-  color,
-  label,
-  value,
-  pulse,
-}: {
-  color: string;
-  label: string;
-  value: number;
-  pulse?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${pulse ? "animate-pulse" : ""}`}
-        style={{ backgroundColor: color }}
-      />
-      <span className="text-[13px] font-normal text-[var(--ink-mute)] tabular-nums tracking-[-0.39px]">
-        {label}: {value}
-      </span>
-    </div>
-  );
-}
-
-// ─── Case row (left column) ───────────────────────────────────────────────────
-
-interface CaseRowProps {
-  testCase: TestCase;
-  state: CaseState;
-  isSelected: boolean;
-  onSelect: () => void;
-  onRun: (e: React.MouseEvent) => void;
-}
-
-function CaseRow({ testCase: tc, state, isSelected, onSelect, onRun }: CaseRowProps) {
-  const isRunning = state.status === "running" || state.status === "polling";
-
-  const dotColor =
-    state.status === "passed"
-      ? "#059669"
-      : state.status === "failed" || state.status === "error"
-        ? "var(--ruby)"
-        : isRunning
-          ? "var(--primary-soft)"
-          : "var(--hairline)";
-
-  const decisionLabel = state.outcome?.decision || (state.outcome?.status === "NEEDS_REUPLOAD" ? "REUPLOAD" : null);
-
-  return (
-    <div
-      onClick={onSelect}
-      className="group flex items-center gap-3 px-4 py-3 cursor-pointer border-l-[3px] transition-colors"
-      style={{
-        borderLeftColor: isSelected ? "var(--primary-indigo)" : "transparent",
-        backgroundColor: isSelected ? "rgba(83,58,253,0.04)" : "transparent",
-      }}
-      onMouseEnter={(e) => {
-        if (!isSelected) (e.currentTarget as HTMLDivElement).style.backgroundColor = "var(--canvas-soft)";
-      }}
-      onMouseLeave={(e) => {
-        if (!isSelected) (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
-      }}
-    >
-      {/* Status dot */}
-      <span
-        className={`shrink-0 w-2 h-2 rounded-full ${isRunning ? "animate-pulse" : ""}`}
-        style={{ backgroundColor: dotColor }}
-      />
-
-      {/* ID + Name */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[11px] font-normal text-[var(--ink-mute)] tabular-nums tracking-[0px] shrink-0">
-            {tc.case_id}
-          </span>
-          <span className="text-[13px] font-normal text-[var(--ink)] tracking-[-0.26px] truncate">
-            {tc.case_name}
-          </span>
         </div>
-        {/* Decision badge or step */}
-        {decisionLabel && (
-          <span
-            className="inline-block mt-0.5 text-[10px] font-normal tracking-[0.1px] uppercase px-1.5 py-0.5 rounded-[4px]"
-            style={{
-              backgroundColor:
-                decisionLabel === "APPROVED"
-                  ? "rgba(5,150,105,0.08)"
-                  : decisionLabel === "PARTIAL"
-                    ? "rgba(217,119,6,0.08)"
-                    : decisionLabel === "REUPLOAD"
-                      ? "rgba(83,58,253,0.08)"
-                      : "rgba(234,34,97,0.08)",
-              color:
-                decisionLabel === "APPROVED"
-                  ? "#059669"
-                  : decisionLabel === "PARTIAL"
-                    ? "#d97706"
-                    : decisionLabel === "REUPLOAD"
-                      ? "var(--primary-indigo)"
-                      : "var(--ruby)",
-            }}
-          >
-            {decisionLabel}
-          </span>
-        )}
-        {isRunning && state.outcome?.current_step && (
-          <span className="inline-block mt-0.5 text-[10px] font-normal text-[var(--primary-indigo)] tracking-[0px]">
-            {state.outcome.current_step}
-          </span>
-        )}
-      </div>
-
-      {/* Duration / Run button */}
-      <div className="shrink-0 flex flex-col items-end gap-1">
-        {state.duration !== null && (
-          <span className="text-[11px] font-normal tabular-nums text-[var(--ink-mute)] tracking-[-0.33px]">
-            {formatDuration(state.duration)}
-          </span>
-        )}
-        <button
-          onClick={onRun}
-          disabled={isRunning}
-          className="text-[11px] font-normal text-[var(--primary-indigo)] hover:text-[var(--primary-deep)]
-                     disabled:opacity-40 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          {isRunning ? "..." : "Run"}
-        </button>
-      </div>
+      </Page>
     </div>
   );
 }
 
-// ─── Detail panel (right column) ─────────────────────────────────────────────
+/* ── How a test case's state is drawn ──────────────────────────────────── */
 
-interface DetailPanelProps {
-  testCase: TestCase;
-  state: CaseState;
-  onRun: () => void;
-  onToggleTrace: () => void;
+const CASE_WORD: Record<CaseStatus, string> = {
+  idle: "Not run",
+  running: "Running",
+  polling: "Running",
+  passed: "Passed",
+  failed: "Failed",
+  error: "Error",
+};
+const CASE_CELL: Record<CaseStatus, string> = {
+  idle: "bg-sunken hover:bg-line",
+  running: "bg-wait-soft animate-pulse",
+  polling: "bg-wait animate-pulse",
+  passed: "bg-ok",
+  failed: "bg-bad",
+  error: "bg-bad",
+};
+const CASE_DOT: Record<CaseStatus, string> = {
+  idle: "bg-line-strong",
+  running: "bg-wait",
+  polling: "bg-wait",
+  passed: "bg-ok",
+  failed: "bg-bad",
+  error: "bg-bad",
+};
+const CASE_PILL: Record<CaseStatus, Outcome> = {
+  idle: "queued",
+  running: "running",
+  polling: "running",
+  passed: "approved",
+  failed: "rejected",
+  error: "failed",
+};
+
+function expectedOutcome(tc: TestCase): Outcome {
+  if (tc.expected.early_stop) return "stopped";
+  return outcomeOf({ status: "COMPLETED", decision: tc.expected.decision });
 }
 
-function DetailPanel({ testCase: tc, state, onRun, onToggleTrace }: DetailPanelProps) {
+/* ── One test case ─────────────────────────────────────────────────────── */
+
+function CaseDetail({ testCase: tc, state, onRun }: { testCase: TestCase; state: CaseState; onRun: () => void }) {
   const isRunning = state.status === "running" || state.status === "polling";
   const isDone = state.status === "passed" || state.status === "failed";
-  const trace = state.outcome ? parseTrace(state.outcome.trace_json) : null;
+  const images = DEMO_SAMPLES.find((s) => s.id === tc.case_id)?.documents ?? [];
+  const docs = tc.documents.map((d) => ({ name: d.file_name, url: images.find((i) => i.name === d.file_name)?.url }));
 
   return (
-    <div className="p-6 max-w-[860px]">
-      {/* ── Case header ──────────────────────────────────────────────────── */}
-      <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] p-6 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[13px] font-normal text-[var(--ink-mute)] tabular-nums tracking-[-0.39px]">
-                {tc.case_id}
-              </span>
-              <h2
-                className="text-[22px] font-light text-[var(--ink)] tracking-[-0.44px]"
-                style={{ fontFeatureSettings: '"ss01"' }}
-              >
-                {tc.case_name}
-              </h2>
-              <StatusBadge status={state.status} />
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-[18px] font-semibold tracking-[-0.01em]">{tc.case_name}</h2>
+              <StatusPill outcome={CASE_PILL[state.status]} label={CASE_WORD[state.status]} />
             </div>
-            <p className="text-[14px] font-light text-[var(--ink-mute-2)] mt-2 leading-[1.5]">
-              {tc.description}
+            <p className="mt-0.5 text-[12px] text-ink-3">
+              {tc.case_id} · expects <span className={OUTCOME[expectedOutcome(tc)].text}>{OUTCOME[expectedOutcome(tc)].label}</span>
+              {typeof tc.expected.approved_amount === "number" ? ` ${inr(tc.expected.approved_amount)}` : ""}
             </p>
           </div>
-          <button
-            onClick={onRun}
-            disabled={isRunning}
-            className="shrink-0 px-4 py-2 rounded-[9999px] bg-[var(--primary-indigo)] text-white
-                       text-[14px] font-normal hover:bg-[var(--primary-deep)] active:bg-[var(--primary-press)]
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isRunning ? "Running..." : "Run"}
-          </button>
+          <Button onClick={onRun} disabled={isRunning}>
+            <Play className="h-4 w-4" /> {isRunning ? "Running" : isDone ? "Run again" : "Run"}
+          </Button>
         </div>
 
-        {/* Meta row */}
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-normal text-[var(--ink-mute)] tracking-[-0.39px]">
-          <MetaItem label="Category" value={tc.input.claim_category} />
-          <MetaItem label="Member" value={tc.input.member_id} />
-          <MetaItem label="Date" value={tc.input.treatment_date} />
-          <MetaItem label="Claimed" value={formatAmount(tc.input.claimed_amount)} tabular />
-          {tc.input.hospital_name && <MetaItem label="Hospital" value={tc.input.hospital_name} />}
-          {state.duration !== null && (
-            <MetaItem label="Duration" value={formatDuration(state.duration)} tabular />
-          )}
-        </div>
+        <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4">
+          <Fact k="Claimed" v={inr(tc.input.claimed_amount)} />
+          <Fact k="Category" v={categoryLabel(tc.input.claim_category)} />
+          <Fact k="Treated" v={shortDate(tc.input.treatment_date)} />
+          <Fact k="Member" v={tc.input.member_id} />
+        </dl>
 
-        {/* Documents */}
-        {tc.documents.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {tc.documents.map((doc) => (
-              <span
-                key={doc.file_id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[9999px] bg-[var(--canvas-soft)] border border-[var(--hairline)] text-[12px] font-normal text-[var(--ink-mute)] tracking-[-0.36px]"
-              >
-                <svg width="10" height="12" viewBox="0 0 10 12" fill="none" className="shrink-0">
-                  <path d="M1 1h5l3 3v7H1V1z" stroke="currentColor" strokeWidth="1" fill="none" strokeLinejoin="round" />
-                  <path d="M6 1v3h3" stroke="currentColor" strokeWidth="1" fill="none" strokeLinejoin="round" />
-                </svg>
-                {doc.file_name}
-              </span>
-            ))}
+        {docs.length > 0 && (
+          <div className="mt-4">
+            <DocThumbs docs={docs} />
           </div>
         )}
-      </div>
 
-      {/* ── Running state: pipeline stepper ─────────────────────────────── */}
-      {isRunning && (
-        <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] p-6 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <h3 className="text-[13px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.6px] mb-4">
-            Pipeline Progress
-          </h3>
-          <PipelineStepper currentStep={state.outcome?.current_step ?? null} />
-        </div>
-      )}
-
-      {/* ── Error state ──────────────────────────────────────────────────── */}
-      {state.status === "error" && state.error && (
-        <div className="bg-[var(--canvas)] border border-[var(--ruby)]/20 rounded-[12px] p-5 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <p className="text-[13px] font-normal text-[var(--ruby)]">{state.error}</p>
-        </div>
-      )}
-
-      {/* ── Expected vs Actual comparison ───────────────────────────────── */}
-      {(isDone || (state.outcome && isRunning)) && (
-        <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] overflow-hidden shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <div className="px-6 py-4 border-b border-[var(--hairline)]">
-            <h3 className="text-[13px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.6px]">
-              Expected vs Actual
-            </h3>
-          </div>
-          <ComparisonTable testCase={tc} outcome={state.outcome!} passed={state.status === "passed"} />
-        </div>
-      )}
-
-      {/* ── Pipeline trace ───────────────────────────────────────────────── */}
-      {isDone && trace && trace.steps.length > 0 && (
-        <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] p-6 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <h3 className="text-[13px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.6px] mb-4">
-            Pipeline Trace
-          </h3>
-          <TraceSteps trace={trace} />
-        </div>
-      )}
-
-      {/* ── System Must checks ──────────────────────────────────────────── */}
-      {isDone && tc.expected.system_must && tc.expected.system_must.length > 0 && (
-        <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] p-6 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <h3 className="text-[13px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.6px] mb-4">
-            System Must
-          </h3>
-          <SystemMustChecks mustList={tc.expected.system_must} outcome={state.outcome!} passed={state.status === "passed"} />
-        </div>
-      )}
-
-      {/* ── Raw trace toggle ────────────────────────────────────────────── */}
-      {isDone && state.outcome?.trace_json && (
-        <div className="bg-[var(--canvas)] border border-[var(--hairline)] rounded-[12px] p-5 shadow-[rgba(0,55,112,0.08)_0_1px_3px] mb-4">
-          <button
-            onClick={onToggleTrace}
-            className="text-[13px] font-normal text-[var(--primary-indigo)] hover:text-[var(--primary-deep)] transition-colors"
-          >
-            {state.traceExpanded ? "Hide raw JSON" : "Show raw JSON"}
-          </button>
-          {state.traceExpanded && (
-            <pre className="mt-3 p-4 rounded-[8px] bg-[var(--brand-dark)] text-[#b9b9f9] text-[11px] font-light overflow-x-auto max-h-[500px] overflow-y-auto leading-relaxed">
-              {JSON.stringify(state.outcome.trace_json, null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Pipeline stepper (running state) ────────────────────────────────────────
-
-function PipelineStepper({ currentStep }: { currentStep: string | null }) {
-  const activeIdx = currentStep
-    ? PIPELINE_STEPS.findIndex((s) => s === currentStep)
-    : 0;
-
-  return (
-    <div className="flex items-center gap-0">
-      {PIPELINE_STEPS.map((step, idx) => {
-        const isActive = idx === activeIdx;
-        const isDone = idx < activeIdx;
-        const label = step.replace(/_/g, " ");
-
-        return (
-          <div key={step} className="flex items-center flex-1 min-w-0">
-            <div className="flex flex-col items-center min-w-0">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-normal transition-colors shrink-0 ${
-                  isActive
-                    ? "bg-[var(--primary-indigo)] text-white animate-pulse"
-                    : isDone
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-[var(--canvas-soft)] text-[var(--ink-mute)]"
-                }`}
-              >
-                {isDone ? "+" : idx + 1}
-              </div>
-              <span
-                className="text-[10px] font-normal mt-1 text-center truncate w-full px-1 tracking-[-0.2px]"
-                style={{ color: isActive ? "var(--primary-indigo)" : isDone ? "#059669" : "var(--ink-mute)" }}
-              >
-                {label}
-              </span>
-            </div>
-            {idx < PIPELINE_STEPS.length - 1 && (
-              <div
-                className="h-[1px] flex-1 mx-1 mb-5 transition-colors"
-                style={{ backgroundColor: isDone ? "#059669" : "var(--hairline)" }}
-              />
+        <div className="mt-4">
+          <More label="What this case checks">
+            <p className="text-[13px] text-ink-2">{tc.description}</p>
+            {tc.expected.system_must && tc.expected.system_must.length > 0 && (
+              <ul className="mt-2 space-y-1 text-[13px] text-ink-2">
+                {tc.expected.system_must.map((must, i) => (
+                  <li key={i} className="flex gap-2">
+                    {/* These are checked by eye, so they are ticked only when the measurable checks all passed. */}
+                    {state.status === "passed" ? (
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ok" strokeWidth={3} />
+                    ) : (
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-3" />
+                    )}
+                    {must}
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        );
-      })}
+          </More>
+        </div>
+      </Card>
+
+      {isRunning && (
+        <Card className="p-5 sm:p-6">
+          <PipelineTrack states={stepStates({ status: "PROCESSING", decision: null, current_step: state.outcome?.current_step ?? null, trace_json: null })} size="lg" />
+        </Card>
+      )}
+
+      {state.status === "error" && state.error && (
+        <Notice tone="bad" icon={<CircleAlert className="h-4 w-4" />} title="Could not run">
+          {state.error}
+        </Notice>
+      )}
+
+      {isDone && state.outcome && (
+        <>
+          <Comparison testCase={tc} outcome={state.outcome} />
+          <ClaimResult
+            claim={toClaim({ ...state.outcome, category: tc.input.claim_category, claimed_amount: tc.input.claimed_amount })}
+            audience="ops"
+            documents={images}
+          />
+        </>
+      )}
     </div>
   );
 }
 
-// ─── Comparison table ─────────────────────────────────────────────────────────
+function Fact({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="min-w-0">
+      <dt>
+        <Label>{k}</Label>
+      </dt>
+      <dd className="mt-0.5 truncate text-[15px] font-medium tabular-nums">{v}</dd>
+    </div>
+  );
+}
 
-function ComparisonTable({
-  testCase: tc,
-  outcome,
-  passed,
-}: {
-  testCase: TestCase;
-  outcome: TestCaseOutcome;
-  passed: boolean;
-}) {
+/* ── Expected against actual ───────────────────────────────────────────── */
+
+function Comparison({ testCase: tc, outcome }: { testCase: TestCase; outcome: TestCaseOutcome }) {
   const exp = tc.expected;
 
-  // Build rows
-  type CompRow = {
-    field: string;
-    expected: string;
-    actual: string;
-    match: boolean | null; // null = not applicable
-  };
-
+  type CompRow = { field: string; expected: string; actual: string; match: boolean };
   const rows: CompRow[] = [];
 
   // Decision
   {
-    const expDecision = exp.early_stop ? "NEEDS_REUPLOAD" : exp.decision ?? "--";
-    const actDecision = exp.early_stop
-      ? outcome.status === "NEEDS_REUPLOAD"
-        ? "NEEDS_REUPLOAD"
-        : outcome.status
-      : outcome.decision ?? "--";
-    const match = exp.early_stop
-      ? outcome.status === "NEEDS_REUPLOAD"
-      : !exp.decision || outcome.decision === exp.decision;
-    rows.push({ field: "Decision", expected: expDecision, actual: actDecision, match });
+    const expDecision = exp.early_stop ? "NEEDS_REUPLOAD" : (exp.decision ?? "–");
+    const actDecision = exp.early_stop ? outcome.status : (outcome.decision ?? "–");
+    const match = exp.early_stop ? outcome.status === "NEEDS_REUPLOAD" : !exp.decision || outcome.decision === exp.decision;
+    rows.push({ field: "Decision", expected: titleCase(expDecision), actual: titleCase(actDecision), match });
   }
 
   // Amount
   if (exp.approved_amount !== undefined && exp.approved_amount !== null) {
     const tolerance = tc.case_id === "TC011" ? 500 : 1;
     const actAmt = outcome.approved_amount;
-    const match =
-      actAmt !== null && Math.abs(actAmt - exp.approved_amount) <= tolerance;
-    rows.push({
-      field: "Amount",
-      expected: formatAmount(exp.approved_amount),
-      actual: formatAmount(actAmt),
-      match,
-    });
+    const match = actAmt !== null && Math.abs(actAmt - exp.approved_amount) <= tolerance;
+    rows.push({ field: "Amount", expected: inr(exp.approved_amount), actual: inr(actAmt), match });
   }
 
   // Confidence
   if (exp.confidence_above !== undefined) {
     const actConf = outcome.confidence_score;
     const match = actConf !== null && actConf >= exp.confidence_above;
-    rows.push({
-      field: "Confidence",
-      expected: `> ${exp.confidence_above}`,
-      actual: actConf !== null ? actConf.toFixed(3) : "--",
-      match,
-    });
+    rows.push({ field: "Confidence", expected: `over ${exp.confidence_above}`, actual: actConf !== null ? actConf.toFixed(2) : "–", match });
   }
 
   // Rejection reasons
   if (exp.rejection_reasons && exp.rejection_reasons.length > 0) {
-    const expStr = exp.rejection_reasons.join(", ");
-    const actStr = outcome.rejection_reasons?.join(", ") ?? "--";
-    const match =
-      !!outcome.rejection_reasons &&
-      exp.rejection_reasons.every((r) => outcome.rejection_reasons!.includes(r));
-    rows.push({ field: "Rejection Reasons", expected: expStr, actual: actStr, match });
+    const match = !!outcome.rejection_reasons && exp.rejection_reasons.every((r) => outcome.rejection_reasons!.includes(r));
+    rows.push({
+      field: "Reason",
+      expected: exp.rejection_reasons.map(titleCase).join(", "),
+      actual: outcome.rejection_reasons?.map(titleCase).join(", ") || "–",
+      match,
+    });
   }
 
   // Fraud signals (if expected)
   if (exp.decision === "MANUAL_REVIEW") {
-    const actSignals =
-      Array.isArray(outcome.fraud_signals) && (outcome.fraud_signals as unknown[]).length > 0
-        ? (outcome.fraud_signals as unknown[]).map((s) => (typeof s === "string" ? s : JSON.stringify(s))).join(", ")
-        : outcome.decision === "MANUAL_REVIEW"
-          ? "flagged"
-          : "--";
+    const signals = Array.isArray(outcome.fraud_signals) ? (outcome.fraud_signals as unknown[]) : [];
     rows.push({
-      field: "Fraud / Review",
-      expected: "Flagged -> MANUAL_REVIEW",
-      actual: actSignals,
+      field: "Fraud",
+      expected: "Flagged",
+      actual: signals.length > 0 ? `${signals.length} signal${signals.length === 1 ? "" : "s"}` : outcome.decision === "MANUAL_REVIEW" ? "Flagged" : "–",
       match: outcome.decision === "MANUAL_REVIEW",
     });
   }
 
   return (
-    <table className="w-full">
-      <thead>
-        <tr className="border-b border-[var(--hairline)]">
-          <th className="text-left px-6 py-3 text-[11px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.5px] w-[140px]">
-            Field
-          </th>
-          <th className="text-left px-6 py-3 text-[11px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.5px]">
-            Expected
-          </th>
-          <th className="text-left px-6 py-3 text-[11px] font-normal text-[var(--ink-mute)] uppercase tracking-[0.5px]">
-            Actual
-          </th>
-          <th className="px-6 py-3 w-[60px]" />
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, i) => (
-          <tr
-            key={i}
-            className="border-b border-[var(--hairline)] last:border-0"
-            style={{ backgroundColor: i % 2 === 0 ? "transparent" : "var(--canvas-soft)" }}
-          >
-            <td className="px-6 py-3 text-[13px] font-normal text-[var(--ink-mute)] tracking-[-0.39px]">
-              {row.field}
-            </td>
-            <td className="px-6 py-3 text-[13px] font-normal text-[var(--ink-secondary)] tracking-[-0.39px] tabular-nums">
-              {row.expected}
-            </td>
-            <td className="px-6 py-3 text-[13px] font-normal text-[var(--ink)] tracking-[-0.39px] tabular-nums">
-              {row.actual}
-            </td>
-            <td className="px-6 py-3 text-center text-[16px]">
-              {row.match === null ? (
-                <span className="text-[var(--ink-mute)]">-</span>
-              ) : row.match ? (
-                <span className="text-emerald-600">Pass</span>
-              ) : (
-                <span className="text-[var(--ruby)]">Fail</span>
-              )}
-            </td>
+    <Card className="overflow-hidden">
+      <table className="w-full text-[14px]">
+        <thead>
+          <tr className="border-b border-line text-left">
+            <th className="px-4 py-2.5 font-normal">
+              <Label>Check</Label>
+            </th>
+            <th className="px-4 py-2.5 font-normal">
+              <Label>Expected</Label>
+            </th>
+            <th className="px-4 py-2.5 font-normal">
+              <Label>Got</Label>
+            </th>
+            <th className="w-10 px-4 py-2.5" />
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-// ─── Trace steps ──────────────────────────────────────────────────────────────
-
-function TraceSteps({ trace }: { trace: ParsedTrace }) {
-  return (
-    <div className="flex flex-col gap-3">
-      {trace.steps.map((step, idx) => {
-        const ok = step.status === "COMPLETED" || step.status === "SUCCESS";
-        const err = step.status === "FAILED" || step.status === "ERROR";
-        const summaryLines = getStepSummary(step);
-
-        return (
-          <div
-            key={idx}
-            className="flex gap-3"
-          >
-            {/* Icon */}
-            <div className="shrink-0 flex flex-col items-center">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] shrink-0"
-                style={{
-                  backgroundColor: ok ? "rgba(5,150,105,0.1)" : err ? "rgba(234,34,97,0.1)" : "var(--canvas-soft)",
-                  color: ok ? "#059669" : err ? "var(--ruby)" : "var(--ink-mute)",
-                }}
-              >
-                {ok ? "+" : err ? "x" : "o"}
-              </div>
-              {idx < trace.steps.length - 1 && (
-                <div className="w-[1px] flex-1 mt-1 bg-[var(--hairline)]" style={{ minHeight: 12 }} />
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0 pb-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className="text-[13px] font-normal tracking-[-0.26px]"
-                  style={{ color: ok ? "#059669" : err ? "var(--ruby)" : "var(--ink)" }}
-                >
-                  {step.step_name}
-                </span>
-                {step.duration_ms !== undefined && (
-                  <span className="text-[11px] font-normal text-[var(--ink-mute)] tabular-nums tracking-[-0.33px]">
-                    {formatDuration(step.duration_ms)}
-                  </span>
-                )}
-              </div>
-
-              {/* Early stop / error message */}
-              {(step.error || (step.details?.error_message)) && (
-                <div className="mt-1.5 px-3 py-2 rounded-[6px] bg-[var(--ruby)]/5 border border-[var(--ruby)]/15">
-                  <p className="text-[12px] font-normal text-[var(--ruby)] leading-[1.5]">
-                    {(step.error || step.details?.error_message) as string}
-                  </p>
-                </div>
-              )}
-
-              {/* Summary lines */}
-              {summaryLines.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                  {summaryLines.map((line, li) => (
-                    <span key={li} className="text-[12px] font-normal text-[var(--ink-mute)] tracking-[-0.36px]">
-                      {line}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── System Must checks ───────────────────────────────────────────────────────
-
-function SystemMustChecks({
-  mustList,
-  outcome,
-  passed,
-}: {
-  mustList: string[];
-  outcome: TestCaseOutcome;
-  passed: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      {mustList.map((must, i) => {
-        const check: boolean | null = passed ? true : null;
-        return (
-          <div key={i} className="flex items-start gap-3">
-            <span
-              className="shrink-0 mt-0.5 text-[14px]"
-              style={{ color: check === true ? "#059669" : check === false ? "var(--ruby)" : "var(--ink-mute)" }}
-            >
-              {check === true ? "+" : check === false ? "x" : "-"}
-            </span>
-            <span className="text-[13px] font-light text-[var(--ink-secondary)] leading-[1.5] tracking-[-0.26px]">
-              {must}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Meta item ────────────────────────────────────────────────────────────────
-
-function MetaItem({ label, value, tabular }: { label: string; value: string; tabular?: boolean }) {
-  return (
-    <span className={`text-[13px] font-normal tracking-[-0.39px] ${tabular ? "tabular-nums" : ""}`}>
-      <span className="text-[var(--ink-mute)]">{label}: </span>
-      <span className="text-[var(--ink-secondary)]">{value}</span>
-    </span>
-  );
-}
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: CaseStatus }) {
-  const config: Record<CaseStatus, { label: string; bg: string; color: string }> = {
-    idle: { label: "Not Run", bg: "var(--canvas-soft)", color: "var(--ink-mute)" },
-    running: { label: "Running", bg: "rgba(83,58,253,0.08)", color: "var(--primary-indigo)" },
-    polling: { label: "Processing", bg: "rgba(83,58,253,0.08)", color: "var(--primary-indigo)" },
-    passed: { label: "Passed", bg: "rgba(5,150,105,0.08)", color: "#059669" },
-    failed: { label: "Failed", bg: "rgba(234,34,97,0.08)", color: "var(--ruby)" },
-    error: { label: "Error", bg: "rgba(234,34,97,0.08)", color: "var(--ruby)" },
-  };
-
-  const { label, bg, color } = config[status];
-
-  return (
-    <span
-      className="inline-flex px-2 py-0.5 rounded-[9999px] text-[10px] font-normal tracking-[0.1px] uppercase"
-      style={{ backgroundColor: bg, color }}
-    >
-      {label}
-    </span>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.field} className={cx("border-b border-line last:border-b-0", !row.match && "bg-bad-soft")}>
+              <td className="px-4 py-2.5 text-ink-3">{row.field}</td>
+              <td className="px-4 py-2.5 tabular-nums">{row.expected}</td>
+              <td className={cx("px-4 py-2.5 font-medium tabular-nums", !row.match && "text-bad")}>{row.actual}</td>
+              <td className="px-4 py-2.5">
+                {row.match ? <Check className="h-4 w-4 text-ok" strokeWidth={3} aria-label="Match" /> : <X className="h-4 w-4 text-bad" strokeWidth={3} aria-label="Mismatch" />}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
