@@ -256,7 +256,7 @@ Test case treatment dates are historical (2024). The submission deadline rule us
 4. **Download documents** — Fetch image bytes from S3 for each `claim_document.s3_key`
 5. **Build ClaimState** — Assemble TypedDict with all loaded data + empty agent output slots
 6. **doc_verify** (CRITICAL) — Vision LLM classifies each document, checks quality (readability score), detects patient name, validates type matches. If unreadable/wrong docs: sets `should_stop_early=True`
-7. **Conditional edge** — If early stop: persist REJECTED + reason, write doc results, END
+7. **Conditional edge** — If early stop: persist status NEEDS_REUPLOAD with the reason and no decision, write doc results, END
 8. **doc_extract** (degradable) — Vision LLM extracts structured data (line items, amounts, dates, diagnosis) from each document type
 9. **policy_engine** (degradable) — Orchestrator runs 10 evaluators in order. Short-circuits on blocking failure. Calculates approved amount (network discount applied before co-pay)
 10. **fraud_detection** (degradable) — 8 signal checks against claim history and thresholds from policy config. Computes weighted risk score
@@ -273,7 +273,7 @@ Test case treatment dates are historical (2024). The submission deadline rule us
 | Member/policy not found | handler.process_claim | Set status=FAILED, return |
 | S3 download failure | handler.process_claim | Set `image_bytes=None`, continue (Vision will fail gracefully) |
 | doc_verify fails (exception) | PipelineNode | CRITICAL — re-raise, SQS retries |
-| doc_verify detects bad docs | Pipeline | Set `should_stop_early`, persist REJECTED |
+| doc_verify detects bad docs | Pipeline | Set `should_stop_early`, persist NEEDS_REUPLOAD (no decision) |
 | Degradable agent fails | PipelineNode | Catch, reduce confidence by 0.15, use safe defaults, add to `degraded_steps` |
 | All degradable agents fail | Pipeline | Final decision = MANUAL_REVIEW, confidence = 0.5 |
 | persist_result fails | persist_result_node | Log error (non-fatal — result exists in state) |
